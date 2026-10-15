@@ -6,7 +6,7 @@ import { useOnline } from '@/hooks/data';
 import { formatDate } from '@/lib/format';
 import { cn, errorMessage } from '@/lib/utils';
 import { commitWrite } from './helpers';
-import { parseNumber } from './importCsv';
+import { parseNumber } from './import/numbers';
 import type { InventoryFx } from './useInventoryFx';
 
 /** Equivalente en Bs (texto secundario) de un monto en $. No pinta nada sin modo bimonetario o sin tasa. */

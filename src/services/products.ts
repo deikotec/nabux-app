@@ -57,7 +57,7 @@ export function newProductId(bid: string) {
 }
 
 /** Sube la foto de un producto a Storage: businesses/{bid}/products/{pid}/… */
-export function uploadProductImage(bid: string, productId: string, file: File) {
+export function uploadProductImage(bid: string, productId: string, file: Blob) {
   return uploadImage(file, `businesses/${bid}/products/${productId}`, 800);
 }
 
@@ -200,34 +200,190 @@ export async function bulkAdjustPrices(bid: string, actor: Actor, products: Prod
   return products.length;
 }
 
-/** Importación masiva (CSV). Escribe en lotes de 200 productos (en paralelo). */
-export async function importProducts(bid: string, actor: Actor, items: ProductInput[]) {
-  const chunkSize = 200;
-  const batches = [];
-  for (let i = 0; i < items.length; i += chunkSize) {
-    const batch = writeBatch(db);
-    for (const input of items.slice(i, i + chunkSize)) {
-      const id = newProductId(bid);
-      const data = cleanInput(input);
-      batch.set(refs.product(bid, id), {
-        ...data,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastRestockAt: data.stock > 0 ? serverTimestamp() : null
+/* ------------------------------------------------------------------ */
+/* Importación (Excel, CSV o fotos)                                    */
+/* ------------------------------------------------------------------ */
+
+/** Producto nuevo de una importación. `image` es una foto a subir (incrustada en el Excel o tomada). */
+export interface ImportCreate {
+  kind: 'create';
+  input: ProductInput;
+  image?: Blob | null;
+}
+
+/** Cambios sobre un producto existente: solo los campos que traía el archivo. */
+export interface ImportUpdate {
+  kind: 'update';
+  product: Product;
+  patch: Partial<ProductInput>;
+  /** Cambio de stock con signo. */
+  stockDelta?: number;
+  /** "add" = entrada de mercancía; "set" = ajuste por conteo. */
+  stockMode?: 'add' | 'set';
+  image?: Blob | null;
+}
+
+export type ImportItem = ImportCreate | ImportUpdate;
+
+export interface ImportProgress {
+  /** Productos ya guardados. */
+  done: number;
+  total: number;
+  /** Fotos subidas / por subir en el lote actual. */
+  uploading?: { done: number; total: number };
+}
+
+export interface ImportResult {
+  created: number;
+  updated: number;
+  /** Nombres de productos cuya foto no se pudo subir (se guardaron sin ella). */
+  imageFailures: string[];
+  /** Se canceló a mitad: lo guardado hasta ese momento se queda. */
+  cancelled: boolean;
+}
+
+/** Productos por lote: con su movimiento de kardex son ≤ 2 escrituras cada uno (límite de 500 por lote). */
+const IMPORT_CHUNK = 150;
+const UPLOAD_CONCURRENCY = 4;
+
+function cleanPatch(patch: Partial<ProductInput>) {
+  const out: Record<string, unknown> = {};
+  if (patch.name !== undefined) out.name = patch.name.trim();
+  if (patch.barcode !== undefined) out.barcode = (patch.barcode ?? '').trim();
+  if (patch.category !== undefined) out.category = patch.category.trim() || 'General';
+  if (patch.brand !== undefined) out.brand = (patch.brand ?? '').trim();
+  if (patch.unit !== undefined) out.unit = patch.unit || 'Unidad';
+  if (patch.costPrice !== undefined) out.costPrice = round2(Number(patch.costPrice) || 0);
+  if (patch.salePrice !== undefined) out.salePrice = round2(Number(patch.salePrice) || 0);
+  if (patch.minStock !== undefined) out.minStock = Math.max(0, Number(patch.minStock) || 0);
+  if (patch.location !== undefined) out.location = (patch.location ?? '').trim();
+  if (patch.supplierId !== undefined) out.supplierId = patch.supplierId || null;
+  if (patch.supplierName !== undefined) out.supplierName = patch.supplierName || null;
+  if (patch.taxExempt !== undefined) out.taxExempt = !!patch.taxExempt;
+  if (patch.imageUrl !== undefined) out.imageUrl = patch.imageUrl ?? null;
+  if (patch.imagePath !== undefined) out.imagePath = patch.imagePath ?? null;
+  return out;
+}
+
+/** Ejecuta `fn` sobre cada elemento con como mucho `limit` a la vez. */
+async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) await fn(items[next++]);
+  });
+  await Promise.all(workers);
+}
+
+/**
+ * Guarda una importación por lotes: en cada lote sube primero las fotos y luego escribe los
+ * productos (con su movimiento de kardex) en un solo batch. Si se cancela, lo guardado hasta ese
+ * lote se queda — que es lo que espera quien cancela — y nada queda a medias dentro de un lote.
+ */
+export async function importCatalog(
+  bid: string,
+  actor: Actor,
+  items: ImportItem[],
+  opts: { source: string; onProgress?: (p: ImportProgress) => void; isCancelled?: () => boolean }
+): Promise<ImportResult> {
+  const result: ImportResult = { created: 0, updated: 0, imageFailures: [], cancelled: false };
+  const total = items.length;
+  const replacedImages: string[] = [];
+  const reason = `Importación (${opts.source})`;
+
+  for (let i = 0; i < total; i += IMPORT_CHUNK) {
+    if (opts.isCancelled?.()) {
+      result.cancelled = true;
+      break;
+    }
+    const chunk = items.slice(i, i + IMPORT_CHUNK).map((item) => ({
+      item,
+      id: item.kind === 'create' ? newProductId(bid) : item.product.id,
+      uploaded: null as { url: string; path: string } | null
+    }));
+
+    // 1. Fotos del lote.
+    const withImage = chunk.filter((c) => c.item.image);
+    if (withImage.length) {
+      let up = 0;
+      opts.onProgress?.({ done: i, total, uploading: { done: 0, total: withImage.length } });
+      await pool(withImage, UPLOAD_CONCURRENCY, async (c) => {
+        try {
+          c.uploaded = await uploadProductImage(bid, c.id, c.item.image!);
+        } catch (e) {
+          console.warn('No se pudo subir la foto importada', e);
+          result.imageFailures.push(c.item.kind === 'create' ? c.item.input.name : c.item.product.name);
+        }
+        opts.onProgress?.({ done: i, total, uploading: { done: ++up, total: withImage.length } });
       });
-      if (data.stock !== 0) {
-        batch.set(
-          doc(refs.movements(bid)),
-          movementDoc({ id, name: data.name, sku: data.sku }, actor, 'initial', data.stock, {
-            stockAfter: data.stock,
-            reason: 'Importación CSV',
-            unitCost: data.costPrice
-          })
-        );
+    }
+
+    // 2. Productos del lote, en un solo batch.
+    const batch = writeBatch(db);
+    for (const { item, id, uploaded } of chunk) {
+      if (item.kind === 'create') {
+        const data = cleanInput({ ...item.input, ...(uploaded ? { imageUrl: uploaded.url, imagePath: uploaded.path } : {}) });
+        batch.set(refs.product(bid, id), {
+          ...data,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastRestockAt: data.stock > 0 ? serverTimestamp() : null
+        });
+        if (data.stock !== 0) {
+          batch.set(
+            doc(refs.movements(bid)),
+            movementDoc({ id, name: data.name, sku: data.sku }, actor, 'initial', data.stock, {
+              stockAfter: data.stock,
+              reason,
+              unitCost: data.costPrice
+            })
+          );
+        }
+      } else {
+        const prev = item.product;
+        const patch = cleanPatch({ ...item.patch, ...(uploaded ? { imageUrl: uploaded.url, imagePath: uploaded.path } : {}) });
+        const merged = { ...prev, ...patch } as Product;
+        const delta = Number(item.stockDelta) || 0;
+        batch.update(refs.product(bid, id), {
+          ...patch,
+          searchText: buildSearchText(merged),
+          updatedAt: serverTimestamp(),
+          // Incremento: no pisa ventas hechas mientras se revisaba la importación.
+          ...(delta ? { stock: increment(delta) } : {}),
+          ...(delta > 0 ? { lastRestockAt: serverTimestamp() } : {})
+        });
+        if (delta) {
+          const type: MovementType = item.stockMode === 'add' ? 'in' : 'adjust';
+          batch.set(
+            doc(refs.movements(bid)),
+            movementDoc({ id, name: merged.name, sku: merged.sku }, actor, type, delta, {
+              stockAfter: (Number(prev.stock) || 0) + delta,
+              reason,
+              unitCost: type === 'in' ? ((patch.costPrice as number | undefined) ?? prev.costPrice ?? null) : null
+            })
+          );
+        }
+        // Foto nueva (subida o enlace): la anterior de Storage ya no se usa.
+        if (prev.imagePath && (uploaded || item.patch.imageUrl !== undefined)) replacedImages.push(prev.imagePath);
       }
     }
-    batches.push(batch);
+    await batch.commit();
+    for (const { item } of chunk) {
+      if (item.kind === 'create') result.created++;
+      else result.updated++;
+    }
+    opts.onProgress?.({ done: Math.min(i + IMPORT_CHUNK, total), total });
   }
-  await Promise.all(batches.map((b) => b.commit()));
-  logActivity(bid, actor, { type: 'product_create', message: `Importó ${items.length} productos desde CSV` });
+
+  replacedImages.forEach((path) => deleteImage(path));
+  if (result.created || result.updated) {
+    const parts = [
+      result.created ? `${result.created} producto${result.created === 1 ? '' : 's'} nuevo${result.created === 1 ? '' : 's'}` : '',
+      result.updated ? `actualizó ${result.updated}` : ''
+    ].filter(Boolean);
+    logActivity(bid, actor, {
+      type: result.created ? 'product_create' : 'product_update',
+      message: `Importó ${parts.join(' y ')} desde ${opts.source}${result.cancelled ? ' (cancelada a mitad)' : ''}`
+    });
+  }
+  return result;
 }

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
-import { ChartColumn, FolderInput, Lock, Pencil, Plus, Tag, Tags, Trash2 } from 'lucide-react';
+import { ChartColumn, FolderInput, Lock, Pencil, Plus, Tag, Tags, Trash2, WandSparkles } from 'lucide-react';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCatalog } from '@/contexts/CatalogContext';
 import { BarList } from '@/components/charts';
+import { CategorizeModal, isUncategorized } from '@/features/inventory/CategorizeModal';
+import { aiConfigured } from '@/lib/ai';
 import { formatNumber } from '@/lib/format';
 import { errorMessage, normalize } from '@/lib/utils';
 import { logActivity } from '@/services/activity';
@@ -34,6 +36,7 @@ export function CategoriesTab() {
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [deleting, setDeleting] = useState<CategoryRow | null>(null);
+  const [organizing, setOrganizing] = useState(false);
 
   const registered = business.categories;
 
@@ -56,6 +59,7 @@ export function CategoriesTab() {
   }, [products, registered]);
 
   const uncategorized = useMemo(() => products.filter((p) => !(p.category ?? '').trim()).length, [products]);
+  const inGeneral = useMemo(() => products.filter(isUncategorized).length, [products]);
   const visible = query ? rows.filter((r) => normalize(r.name).includes(normalize(query))) : rows;
   const orphanCount = rows.filter((r) => !r.registered).length;
 
@@ -323,6 +327,23 @@ export function CategoriesTab() {
           )}
         </SettingsCard>
 
+        {canInventory && aiConfigured && products.length > 0 && (
+          <SettingsCard icon={WandSparkles} iconTone="secondary" title="Organizar con IA" subtitle="Propone una categoría para cada producto; tú revisas y apruebas.">
+            <p className="text-body-sm text-on-surface-variant">
+              {inGeneral > 0 ? (
+                <>
+                  Tienes <b className="text-on-surface tnum">{formatNumber(inGeneral)}</b> producto(s) sin categoría o en «General».
+                </>
+              ) : (
+                'Todos tus productos tienen categoría. También puedes pedirle a la IA que revise el catálogo completo.'
+              )}
+            </p>
+            <Button variant="tonal" icon={WandSparkles} onClick={() => setOrganizing(true)} className="self-start">
+              Proponer categorías
+            </Button>
+          </SettingsCard>
+        )}
+
         {orphanCount > 0 && (
           <Callout tone="warning" title={`${orphanCount} categoría(s) solo existen en productos`}>
             Se crearon desde el inventario o una importación. Regístralas para que aparezcan siempre en tu lista, aunque se queden sin productos.
@@ -339,6 +360,8 @@ export function CategoriesTab() {
           Al renombrar una categoría se actualizan todos sus productos. Para eliminar una categoría con productos, primero eliges a cuál moverlos.
         </Callout>
       </div>
+
+      {organizing && <CategorizeModal onClose={() => setOrganizing(false)} />}
 
       <DeleteCategoryModal
         key={deleting?.name ?? 'none'}

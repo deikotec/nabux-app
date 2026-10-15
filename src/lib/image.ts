@@ -2,7 +2,7 @@ import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage
 import { storage } from './firebase';
 
 /** Redimensiona y comprime una imagen en el navegador antes de subirla. */
-export async function compressImage(file: File, maxSize = 800, quality = 0.82): Promise<Blob> {
+export async function compressImage(file: Blob, maxSize = 800, quality = 0.82): Promise<Blob> {
   if (!file.type.startsWith('image/')) throw new Error('El archivo debe ser una imagen.');
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) return file;
@@ -34,7 +34,7 @@ export interface UploadedImage {
  * Sube una imagen comprimida a Storage.
  * @param folder ej. `businesses/{bid}/products` o `users/{uid}`
  */
-export async function uploadImage(file: File, folder: string, maxSize = 800): Promise<UploadedImage> {
+export async function uploadImage(file: Blob, folder: string, maxSize = 800): Promise<UploadedImage> {
   if (file.size > 15 * 1024 * 1024) throw new Error('La imagen es demasiado grande (máx. 15 MB).');
   const blob = await compressImage(file, maxSize);
   const ext = blob.type === 'image/webp' ? 'webp' : blob.type === 'image/png' ? 'png' : 'jpg';

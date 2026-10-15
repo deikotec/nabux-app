@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ArrowLeftRight, ChevronDown, Download, Eye, EyeOff, FileDown, FileUp, Lock, Package, PackageSearch, Percent, Plus } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, Download, Eye, EyeOff, FileDown, FileUp, Lock, Package, PackageSearch, Percent, Plus, Tags, WandSparkles } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, MenuItem, PageHeader, Pagination, Popover, Select, Skeleton, useConfirm, useToast } from '@/components/ui';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCatalog } from '@/contexts/CatalogContext';
 import { useOnline } from '@/hooks/data';
+import { aiConfigured } from '@/lib/ai';
 import { formatNumber } from '@/lib/format';
 import { downloadFile, errorMessage } from '@/lib/utils';
 import { adjustStock, deleteProduct, setProductActive } from '@/services/products';
 import type { Product } from '@/types';
+import { BulkCategoryModal } from './BulkCategoryModal';
 import { BulkPriceModal, type BulkScope } from './BulkPriceModal';
+import { CategorizeModal, isUncategorized } from './CategorizeModal';
 import { FilterBar } from './FilterBar';
 import { MissingRateNotice, RateChip } from './FxBits';
 import {
@@ -30,7 +33,7 @@ import {
   type MoveType,
   type StatusFilter
 } from './helpers';
-import { downloadImportTemplate, ImportModal } from './ImportModal';
+import { downloadImportTemplate, ImportModal } from './import/ImportModal';
 import { useInventoryFx } from './useInventoryFx';
 import { InventoryKpis } from './InventoryKpis';
 import { KardexModal } from './KardexModal';
@@ -149,9 +152,12 @@ export default function InventoryPage() {
   const [kardexId, setKardexId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [bulk, setBulk] = useState<{ scope: BulkScope } | null>(null);
+  const [categorize, setCategorize] = useState<{ selected: boolean } | null>(null);
+  const [bulkCategory, setBulkCategory] = useState(false);
   const closeMove = useCallback(() => setMove(null), []);
   const kardexProduct = kardexId ? (productsById.get(kardexId) ?? null) : null;
-  const anyModal = !!form || !!move || !!kardexId || importOpen || !!bulk;
+  const anyModal = !!form || !!move || !!kardexId || importOpen || !!bulk || !!categorize || bulkCategory;
+  const uncategorizedCount = useMemo(() => products.filter(isUncategorized).length, [products]);
 
   // Atajo: F3 o Ctrl+B enfoca el buscador/escáner.
   useEffect(() => {
@@ -335,13 +341,13 @@ export default function InventoryPage() {
               align="right"
               trigger={({ open, toggle }) => (
                 <Button variant="soft" icon={ArrowLeftRight} iconRight={ChevronDown} onClick={toggle} aria-expanded={open} aria-haspopup="menu" aria-label="Importar / Exportar">
-                  <span className="sm:hidden">CSV</span>
+                  <span className="sm:hidden">Importar</span>
                   <span className="hidden sm:inline">Importar / Exportar</span>
                 </Button>
               )}
             >
               {(close) => (
-                <div className="flex w-64 flex-col" role="menu">
+                <div className="flex w-72 flex-col" role="menu">
                   <MenuItem
                     icon={FileDown}
                     onClick={() => {
@@ -360,9 +366,26 @@ export default function InventoryPage() {
                           close();
                           setImportOpen(true);
                         }}
+                        hint={<span className="text-body-sm text-on-surface-variant">Excel, CSV o fotos</span>}
                       >
-                        Importar CSV
+                        Importar productos
                       </MenuItem>
+                      {aiConfigured && products.length > 0 && (
+                        <MenuItem
+                          icon={WandSparkles}
+                          onClick={() => {
+                            close();
+                            setCategorize({ selected: false });
+                          }}
+                          hint={
+                            uncategorizedCount > 0 ? (
+                              <span className="text-body-sm text-on-surface-variant tnum">{formatNumber(uncategorizedCount, business.locale)} sin categoría</span>
+                            ) : undefined
+                          }
+                        >
+                          Organizar categorías con IA
+                        </MenuItem>
+                      )}
                       <div className="my-1 h-px bg-slate-100" role="separator" />
                       <MenuItem
                         icon={Download}
@@ -440,6 +463,14 @@ export default function InventoryPage() {
                   <Button size="sm" variant="secondary" icon={Percent} onClick={() => setBulk({ scope: 'selected' })}>
                     Ajustar precios
                   </Button>
+                  <Button size="sm" variant="secondary" icon={Tags} onClick={() => setBulkCategory(true)}>
+                    Categoría
+                  </Button>
+                  {aiConfigured && (
+                    <Button size="sm" variant="secondary" icon={WandSparkles} onClick={() => setCategorize({ selected: true })}>
+                      Clasificar con IA
+                    </Button>
+                  )}
                   <Button size="sm" variant="secondary" icon={Eye} onClick={() => bulkSetActive(true)}>
                     Activar
                   </Button>
@@ -463,12 +494,12 @@ export default function InventoryPage() {
           <EmptyState
             icon={Package}
             title="Aún no tienes productos"
-            description={canEdit ? 'Registra tu primer producto o importa tu catálogo completo desde un archivo CSV.' : 'Cuando tu equipo registre productos, aparecerán aquí.'}
+            description={canEdit ? 'Registra tu primer producto o importa tu catálogo completo desde Excel, CSV o fotos de tu lista de precios.' : 'Cuando tu equipo registre productos, aparecerán aquí.'}
             action={
               canEdit ? (
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button variant="secondary" icon={FileUp} onClick={() => setImportOpen(true)}>
-                    Importar CSV
+                    Importar productos
                   </Button>
                   <Button icon={Plus} onClick={() => setForm({ product: null })}>
                     Nuevo producto
@@ -543,6 +574,16 @@ export default function InventoryPage() {
         />
       )}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} />}
+      {categorize && canEdit && (
+        <CategorizeModal
+          selected={categorize.selected ? selectedProducts : []}
+          initialScope={categorize.selected ? 'selected' : undefined}
+          onClose={() => setCategorize(null)}
+        />
+      )}
+      {bulkCategory && canEdit && selectedProducts.length > 0 && (
+        <BulkCategoryModal products={selectedProducts} onClose={() => setBulkCategory(false)} onDone={clearSelection} />
+      )}
       {bulk && canEdit && (
         <BulkPriceModal
           selected={selectedProducts}

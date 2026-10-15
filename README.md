@@ -9,7 +9,7 @@ Aplicación web para que cualquier persona cree su cuenta, registre su negocio y
 | **Cuenta y negocios** | Registro con correo o Google, verificación de correo, recuperación de contraseña. Asistente para crear el negocio (giro, moneda, impuestos, categorías, logo). Un usuario puede tener o pertenecer a varios negocios. |
 | **Panel principal** | Ventas del día/semana/mes con comparación, ticket promedio, valorización del inventario, stock crítico, curva de ingresos, últimas ventas, categorías más vendidas y primeros pasos para negocios nuevos. |
 | **Terminal POS** | Búsqueda y escaneo de códigos (lector USB/Bluetooth), multiplicador `3*CODIGO`, monto libre, descuentos con tope, efectivo/tarjeta/transferencia, cálculo de cambio, tickets en espera, ticket imprimible de 80 mm y atajos de teclado (F2, F8, F9, F10). **Funciona sin internet**: las ventas se sincronizan al volver la conexión. |
-| **Inventario** | Catálogo con filtros, márgenes, niveles de stock, fotos (Storage), entradas de mercancía, mermas, ajustes por conteo, kardex por producto, importación/exportación CSV. |
+| **Inventario** | Catálogo con filtros, márgenes, niveles de stock, fotos (Storage), entradas de mercancía, mermas, ajustes por conteo, kardex por producto, cambio de categoría en lote y exportación CSV. **Importación** desde Excel (con las fotos de los productos incrustadas), CSV o fotos de listas, facturas y productos (ver abajo). |
 | **Caja** | Apertura con fondo inicial y corte de caja (efectivo esperado vs. contado, diferencias, impresión del corte). |
 | **Ventas** | Historial con filtros, reimpresión de tickets y anulación con motivo (devuelve el stock). |
 | **Reportes** | Ingresos, utilidad, ticket promedio, mermas, rendimiento diario vs. meta, top productos, métodos de pago, mapa de calor por horario, ventas por cajero y categoría, histórico de cortes. |
@@ -28,10 +28,34 @@ Al crear el negocio elige **"Venezuela · Dólar + Bolívar (bimonetario)"** (o 
 - **Caja en dos monedas**: fondo inicial y corte de efectivo en $ y en Bs; los pagos electrónicos se totalizan por método para conciliar con el banco.
 - **Ajuste masivo de precios** por porcentaje (inflación / cambio de proveedor).
 
+## Importar productos (Excel, CSV y fotos)
+
+*Inventario → Importar / Exportar → Importar productos*. Nada se guarda hasta revisar y confirmar.
+
+- **Excel (.xlsx) y CSV**: encuentra la tabla aunque tenga títulos, logos o filas de totales; reconoce las columnas por su nombre y por sus datos ("Código" con 13 cifras es código de barras; "Precio" con textos no es un precio); entiende "1.234,56" y "1,234.56" mirando toda la columna; precios en Bs se pasan a $ con la tasa del día.
+- **Fotos dentro del Excel**: las que flotan sobre la hoja y las de "Colocar en celda" (Excel 365) se asignan a su fila y se suben como foto del producto. También acepta una columna `imagen` con enlaces.
+- **Productos que ya existen** (mismo SKU, código de barras o nombre): se omiten o se actualizan solo los campos que trae el archivo; el stock puede no tocarse, **sumarse como entrada** (facturas de compra, queda en el kárdex) o reemplazarse (conteo).
+- **Revisión**: filas nuevas / a actualizar / omitidas / con errores, corrección fila por fila, quitar filas, renombrar o unir categorías, y calcular el precio de venta desde el costo con un margen.
+- **Con IA** (opcional, ver *IA* más abajo): propone qué es cada columna, las categorías del catálogo (reutilizando las tuyas) y clasifica los productos sin categoría; lee **fotos de listas de precios, facturas y catálogos**, y reconoce productos a partir de su foto. Sin IA, una foto por producto usa el nombre del archivo (`7591234567890.jpg` → código de barras, `PRD-0042.png` → SKU, `Harina PAN 1kg.jpg` → nombre): sirve para ponerle foto a productos que ya tienes.
+- **Organizar categorías con IA**: propone categoría para los productos en "General" (o todo el catálogo, o los seleccionados); tú revisas y apruebas.
+
+## IA (Gemini con Firebase AI Logic)
+
+La IA corre desde el navegador con **Firebase AI Logic** (sin servidor y sin claves en el código). Firebase exige **App Check** para usarla:
+
+1. **Google Cloud Console → Seguridad → reCAPTCHA** (mismo proyecto): crea una clave de tipo *sitio web* con los dominios `nabuxx.web.app`, `<proyecto>.firebaseapp.com` y `localhost`.
+2. **Firebase → App Check → Apps**: registra la app web con **reCAPTCHA Enterprise** y esa clave.
+3. **Firebase → AI Logic**: actívalo con la *Gemini Developer API*.
+4. Pon la clave en `.env.local` (`VITE_RECAPTCHA_SITE_KEY=...`), `npm run deploy:hosting`, usa la IA una vez y comprueba en *App Check → APIs* que las solicitudes salen verificadas.
+5. **App Check → APIs → Firebase AI Logic → Aplicar** (*Enforce*). **No** apliques App Check a Firestore, Storage ni Authentication si el proyecto lo comparte otra app.
+
+En local, pon `VITE_APPCHECK_DEBUG_TOKEN=true`, copia el token que aparece en la consola del navegador y regístralo en *App Check → Administrar tokens de depuración*. Sin la clave, todo funciona con reglas automáticas y la pantalla lo indica. Los modelos por defecto son `gemini-3.5-flash-lite` (texto) y `gemini-3.6-flash` (fotos); se cambian con `VITE_AI_MODEL` / `VITE_AI_VISION_MODEL`.
+
 ## Stack
 
 - Vite + React 19 + TypeScript + Tailwind CSS 4
-- Firebase JS SDK (Auth, Firestore con caché persistente offline, Storage)
+- Firebase JS SDK (Auth, Firestore con caché persistente offline, Storage, AI Logic + App Check cargados bajo demanda)
+- Lector de Excel propio (`src/lib/xlsx.ts`, sin dependencias: ZIP + XML con `DecompressionStream`)
 - React Router 7, íconos lucide-react
 - Diseño basado en `retail_inventory_pos_system/DESIGN.md` y los mockups de cada carpeta de pantallas.
 
@@ -91,7 +115,7 @@ npm run deploy          # build + reglas + índices + storage + hosting
 npm run deploy:hosting
 ```
 
-La app se publica en el sitio de Hosting indicado en `firebase.json` (`"site": "nibux"` → <https://nibux.web.app>). Agrega ese dominio (y cualquier dominio propio) en **Authentication → Configuración → Dominios autorizados** para que funcione el inicio de sesión con Google.
+La app se publica en el sitio de Hosting indicado en `firebase.json` (`"site": "nabuxx"` → <https://nabuxx.web.app>). Agrega ese dominio (y cualquier dominio propio) en **Authentication → Configuración → Dominios autorizados** para que funcione el inicio de sesión con Google.
 
 ## Equipo, roles y permisos
 
@@ -135,8 +159,9 @@ src/
   config/         constantes: roles, permisos, monedas, unidades…
   contexts/       Auth, Business (negocio activo), Catalog (productos), Cash (caja)
   features/       una carpeta por pantalla (auth, onboarding, dashboard, pos, inventory, sales, reports, staff, settings, profile)
+                  inventory/import: importador (tabla, columnas, validación, IA, pantalla)
   hooks/          suscripciones en tiempo real (ventas, kardex, equipo…)
-  lib/            firebase, formato, fechas, totales, imágenes, utilidades
+  lib/            firebase, IA (ai.ts), lector de Excel (xlsx.ts), formato, fechas, totales, imágenes, utilidades
   services/       escrituras a Firestore (alineadas con firestore.rules)
   types/          tipos del modelo
 ```
