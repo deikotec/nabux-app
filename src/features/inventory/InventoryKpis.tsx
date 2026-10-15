@@ -11,7 +11,11 @@ interface Props {
   status: StatusFilter;
   onStatus: (s: StatusFilter) => void;
   money: (n: number) => string;
+  /** Equivalente en Bs (modo bimonetario con tasa); null = solo $. */
+  local: ((n: number) => string) | null;
   locale: string;
+  /** El margen promedio se calcula sobre el precio sin IVA. */
+  netMargin?: boolean;
 }
 
 function Chip({ className, children }: { className: string; children: ReactNode }) {
@@ -44,7 +48,7 @@ function KpiButton({ active, onClick, label, children }: { active: boolean; onCl
   );
 }
 
-export function InventoryKpis({ kpis, loading, status, onStatus, money, locale }: Props) {
+export function InventoryKpis({ kpis, loading, status, onStatus, money, local, locale, netMargin }: Props) {
   const toggle = (s: StatusFilter) => onStatus(status === s ? 'all' : s);
   const card = (active: boolean) => cn('h-full cursor-pointer hover:shadow-lift', active && 'border-primary/50 ring-2 ring-primary/40');
 
@@ -110,13 +114,23 @@ export function InventoryKpis({ kpis, loading, status, onStatus, money, locale }
         icon={DollarSign}
         tone="secondary"
         label={<Label>Valorización de stock</Label>}
-        value={<span title="Valor del inventario a precio de costo">{money(kpis.costValue)}</span>}
+        value={
+          local ? (
+            <span className="flex min-w-0 flex-col" title="Valor del inventario a precio de costo">
+              <span className="truncate">{money(kpis.costValue)}</span>
+              <span className="truncate text-body-md font-semibold text-on-surface-variant">{local(kpis.costValue)}</span>
+            </span>
+          ) : (
+            <span title="Valor del inventario a precio de costo">{money(kpis.costValue)}</span>
+          )
+        }
         footer={
           <span className="flex flex-wrap gap-x-2">
             <span>
               A precio de venta: <b className="text-on-surface tnum">{money(kpis.saleValue)}</b>
+              {local && <span className="tnum"> · {local(kpis.saleValue)}</span>}
             </span>
-            <span>
+            <span title={netMargin ? 'Calculado sobre el precio sin IVA' : undefined}>
               Margen prom.:{' '}
               <b className="text-primary tnum">{kpis.avgMargin === null ? '—' : formatPercent(kpis.avgMargin, 1, true)}</b>
             </span>

@@ -8,7 +8,9 @@ import { useOnline } from '@/hooks/data';
 import { formatNumber } from '@/lib/format';
 import { cn, errorMessage, round2 } from '@/lib/utils';
 import { adjustStock, setStockCount } from '@/services/products';
+import { FromLocalHelper, FromLocalTrigger } from './FxBits';
 import { commitWrite, DEFAULT_REASON, MOVE_REASONS, type MoveType } from './helpers';
+import { useInventoryFx } from './useInventoryFx';
 
 const TYPES: { value: MoveType; label: string; description: string; icon: LucideIcon; active: string; iconTone: 'primary' | 'danger' | 'secondary' }[] = [
   {
@@ -40,9 +42,11 @@ const TYPES: { value: MoveType; label: string; description: string; icon: Lucide
 export function StockAdjustModal({ productId, initialType, onClose }: { productId: string; initialType: MoveType; onClose: () => void }) {
   const { business, businessId, actor, money, currencySymbol } = useActiveBusiness();
   const { productsById } = useCatalog();
+  const ifx = useInventoryFx();
   const online = useOnline();
   const toast = useToast();
   const product = productsById.get(productId);
+  const [bsOpen, setBsOpen] = useState(false);
 
   const [type, setType] = useState<MoveType>(initialType);
   const [qty, setQty] = useState<number | ''>('');
@@ -81,7 +85,17 @@ export function StockAdjustModal({ productId, initialType, onClose }: { productI
     setReason(DEFAULT_REASON[t]);
     setQty('');
     setTouched(false);
+    setBsOpen(false);
   };
+
+  const costHint =
+    ifx.local && unitCost !== '' && unitCost > 0 ? (
+      <span className="tnum">
+        <span className="font-medium">≈ {ifx.local(unitCost)}</span> a la tasa actual · antes {money(product.costPrice)}
+      </span>
+    ) : (
+      `Opcional. Actualiza el costo del producto (actual: ${money(product.costPrice)}${ifx.local ? ` · ${ifx.local(product.costPrice)}` : ''}).`
+    );
 
   const submit = async () => {
     setTouched(true);
@@ -196,7 +210,12 @@ export function StockAdjustModal({ productId, initialType, onClose }: { productI
             />
           </Field>
           {type === 'in' ? (
-            <Field label="Costo unitario" htmlFor="move-cost" hint={`Opcional. Actualiza el costo del producto (actual: ${money(product.costPrice)}).`}>
+            <Field
+              label={ifx.dual ? `Costo unitario (${currencySymbol})` : 'Costo unitario'}
+              htmlFor="move-cost"
+              hint={costHint}
+              aside={<FromLocalTrigger ifx={ifx} active={bsOpen} onClick={() => setBsOpen((o) => !o)} />}
+            >
               <NumberInput id="move-cost" value={unitCost} onValueChange={setUnitCost} allowDecimals prefix={currencySymbol} inputSize="lg" placeholder={String(product.costPrice || '0.00')} />
             </Field>
           ) : type === 'adjust' ? (
@@ -212,6 +231,21 @@ export function StockAdjustModal({ productId, initialType, onClose }: { productI
             <div className="hidden sm:block" />
           )}
         </div>
+
+        {type === 'in' && bsOpen && ifx.dual && ifx.rate && (
+          <FromLocalHelper
+            ifx={ifx}
+            title="Calcular el costo unitario desde Bs"
+            applyLabel="Usar como costo"
+            money={money}
+            onApply={(usd) => {
+              setUnitCost(usd);
+              setBsOpen(false);
+              setTimeout(() => document.getElementById('move-cost')?.focus(), 30);
+            }}
+            onClose={() => setBsOpen(false)}
+          />
+        )}
 
         {/* Motivo */}
         <div className="grid gap-4 sm:grid-cols-2">

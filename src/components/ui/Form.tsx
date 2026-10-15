@@ -152,7 +152,8 @@ export function Toggle({
   description,
   disabled,
   className,
-  ariaLabel
+  ariaLabel,
+  id: idProp
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
@@ -162,8 +163,11 @@ export function Toggle({
   className?: string;
   /** Etiqueta accesible cuando no hay label visible. */
   ariaLabel?: string;
+  /** Id del interruptor (para asociarlo a un <label htmlFor> externo). */
+  id?: string;
 }) {
-  const id = useId();
+  const autoId = useId();
+  const id = idProp ?? autoId;
   const sw = (
     <button
       id={id}

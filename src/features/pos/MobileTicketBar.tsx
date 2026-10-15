@@ -7,12 +7,14 @@ interface MobileTicketBarProps {
   itemCount: number;
   total: number;
   money: (n: number) => string;
+  /** Equivalente en Bs (modo bimonetario con tasa). */
+  moneyLocal?: (n: number) => string;
   blocked: boolean;
   onOpen: () => void;
 }
 
 /** Barra fija inferior (móvil/tablet) con el resumen del ticket y acceso al cobro. */
-export function MobileTicketBar({ itemCount, total, money, blocked, onOpen }: MobileTicketBarProps) {
+export function MobileTicketBar({ itemCount, total, money, moneyLocal, blocked, onOpen }: MobileTicketBarProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-overlay backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-3xl items-center gap-3">
@@ -22,7 +24,10 @@ export function MobileTicketBar({ itemCount, total, money, blocked, onOpen }: Mo
             {formatNumber(itemCount)} {itemCount === 1 ? 'artículo' : 'artículos'}
             {blocked && <span className="text-amber-700">· caja cerrada</span>}
           </span>
-          <span className="truncate text-headline-md font-bold text-primary tnum">{money(total)}</span>
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+            <span className="truncate text-headline-md font-bold text-primary tnum">{money(total)}</span>
+            {moneyLocal && <span className="truncate text-label-lg text-secondary tnum">{moneyLocal(total)}</span>}
+          </span>
         </button>
         <Button size="lg" icon={ShoppingCart} onClick={onOpen}>
           Ver ticket

@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/format';
 import { sameDay } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { Sale } from '@/types';
-import { OfflineBadge, PaymentBadge, SaleStatusBadge } from '@/features/sales/SaleBadges';
+import { OfflineBadge, PaymentBadge, SaleLocalAmount, SaleStatusBadge } from '@/features/sales/SaleBadges';
 import { formatClock, saleTime, summarizeItems } from '@/features/sales/saleUtils';
 
 function when(d: Date) {
@@ -124,10 +124,11 @@ export function RecentSalesCard({
                         </span>
                       </TD>
                       <TD>
-                        <PaymentBadge method={s.paymentMethod} short compactBelow="42rem" />
+                        <PaymentBadge sale={s} short compactBelow="42rem" />
                       </TD>
                       <TD align="right" className={cn('font-bold whitespace-nowrap', voided ? 'text-on-surface-variant line-through' : 'text-on-surface')}>
                         {money(s.total)}
+                        <SaleLocalAmount sale={s} />
                       </TD>
                       <TD align="center" className="pr-6">
                         <SaleStatusBadge status={s.status} />
@@ -154,9 +155,12 @@ export function RecentSalesCard({
                   >
                     <ReceiptText className="mt-0.5 size-[18px] shrink-0 text-primary" aria-hidden />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
-                      <span className="flex items-center justify-between gap-2">
+                      <span className="flex items-start justify-between gap-2">
                         <span className="text-data-mono font-bold tnum">{s.folio}</span>
-                        <span className={cn('text-label-lg tnum', voided ? 'text-on-surface-variant line-through' : 'text-on-surface')}>{money(s.total)}</span>
+                        <span className={cn('text-right text-label-lg tnum', voided ? 'text-on-surface-variant line-through' : 'text-on-surface')}>
+                          {money(s.total)}
+                          <SaleLocalAmount sale={s} />
+                        </span>
                       </span>
                       <span className="truncate text-body-sm text-on-surface">{summarizeItems(s.items, 2)}</span>
                       <span className="flex flex-wrap items-center gap-2 text-body-sm text-on-surface-variant">
@@ -164,7 +168,7 @@ export function RecentSalesCard({
                           {day ? `${day} · ` : ''}
                           {formatClock(d)}
                         </span>
-                        <PaymentBadge method={s.paymentMethod} short className="py-0.5" />
+                        <PaymentBadge sale={s} short className="py-0.5" />
                         {voided && <SaleStatusBadge status={s.status} />}
                         {s.offline && <OfflineBadge />}
                       </span>

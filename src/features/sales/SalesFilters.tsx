@@ -1,13 +1,13 @@
 import { useId } from 'react';
 import { CalendarDays, CalendarRange, FunnelX } from 'lucide-react';
-import { PAYMENT_METHODS } from '@/config/app';
 import { toInputDate } from '@/lib/dates';
 import { Button, Input, SearchInput, Segmented, Select, type TabOption } from '@/components/ui';
-import type { PaymentMethod } from '@/types';
+import { MIXED_FILTER, type MethodOption } from './saleUtils';
 
 export type RangeOption = 'today' | 'yesterday' | '7d' | 'month' | '30d' | 'custom';
 export type StatusFilter = 'all' | 'completed' | 'voided';
-export type MethodFilter = 'all' | PaymentMethod;
+/** 'all', 'mixed' (pago mixto) o el id de una forma de pago. */
+export type MethodFilter = string;
 
 export const RANGE_OPTIONS: TabOption<RangeOption>[] = [
   { value: 'today', label: 'Hoy' },
@@ -78,6 +78,7 @@ export function FilterBar({
   onSearch,
   method,
   onMethod,
+  methodOptions,
   status,
   onStatus,
   cashier,
@@ -91,6 +92,8 @@ export function FilterBar({
   onSearch: (v: string) => void;
   method: MethodFilter;
   onMethod: (v: MethodFilter) => void;
+  /** Formas de pago del negocio y métodos de ventas antiguas que aparecen en el período. */
+  methodOptions: { configured: MethodOption[]; legacy: MethodOption[] };
   status: StatusFilter;
   onStatus: (v: StatusFilter) => void;
   cashier: string;
@@ -102,15 +105,36 @@ export function FilterBar({
 }) {
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-surface-container-low p-2 xl:flex-row xl:items-center">
-      <SearchInput value={search} onChange={onSearch} placeholder="Buscar por folio, cliente o producto…" className="min-w-0 xl:flex-1" />
+      <SearchInput value={search} onChange={onSearch} placeholder="Folio, cliente, producto o referencia…" className="min-w-0 xl:flex-1" />
       <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
-        <Select
-          aria-label="Método de pago"
-          value={method}
-          onChange={(e) => onMethod(e.target.value as MethodFilter)}
-          options={[{ value: 'all', label: 'Método: Todos' }, ...PAYMENT_METHODS.map((m) => ({ value: m.id, label: m.label }))]}
-          className="sm:w-48"
-        />
+        <Select aria-label="Forma de pago" value={method} onChange={(e) => onMethod(e.target.value)} className="sm:w-52">
+          <option value="all">Método: Todos</option>
+          {methodOptions.legacy.length > 0 ? (
+            <optgroup label="Formas de pago">
+              {methodOptions.configured.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+          ) : (
+            methodOptions.configured.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))
+          )}
+          {methodOptions.legacy.length > 0 && (
+            <optgroup label="Ventas anteriores">
+              {methodOptions.legacy.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          <option value={MIXED_FILTER}>Pago mixto (varios métodos)</option>
+        </Select>
         <Select
           aria-label="Estado"
           value={status}

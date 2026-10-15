@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { CircleCheck, ReceiptText, RotateCcw, ScanBarcode, ShieldCheck, SlidersHorizontal, Store, Tags, Truck } from 'lucide-react';
+import { ArrowLeftRight, CircleCheck, ReceiptText, RotateCcw, ScanBarcode, ShieldCheck, SlidersHorizontal, Store, Tags, Truck, WalletCards } from 'lucide-react';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCatalog } from '@/contexts/CatalogContext';
+import { useFx } from '@/contexts/FxContext';
 import { formatDateTime, formatRelative } from '@/lib/format';
+import { formatRate } from '@/lib/fx';
 import { Badge, Button, PageHeader, TabBar, useConfirm, type TabOption } from '@/components/ui';
 import { BusinessTab } from './BusinessTab';
 import { CategoriesTab } from './CategoriesTab';
+import { CurrencyRatesTab } from './CurrencyRatesTab';
 import { InventoryRulesTab } from './InventoryRulesTab';
+import { PaymentMethodsTab } from './PaymentMethodsTab';
 import { countActiveRules } from './rules';
 import { ScannerTab } from './ScannerTab';
 import { PendingContext, useNow, type PendingChanges, type SettingsTabId } from './settingsState';
@@ -15,11 +19,12 @@ import { SaveBar } from './SettingsUI';
 import { SuppliersTab } from './SuppliersTab';
 import { TaxReceiptTab } from './TaxReceiptTab';
 
-const TAB_IDS: SettingsTabId[] = ['negocio', 'impuestos', 'reglas', 'categorias', 'proveedores', 'lector'];
+const TAB_IDS: SettingsTabId[] = ['negocio', 'impuestos', 'moneda', 'pagos', 'reglas', 'categorias', 'proveedores', 'lector'];
 
 export default function SettingsPage() {
   const { business, businessId, can } = useActiveBusiness();
   const { suppliers, categories } = useCatalog();
+  const fx = useFx();
   const { confirm } = useConfirm();
   const [params, setParams] = useSearchParams();
   const [pending, setPending] = useState<PendingChanges | null>(null);
@@ -33,12 +38,14 @@ export default function SettingsPage() {
     () => [
       { value: 'negocio', label: 'Negocio', icon: Store },
       { value: 'impuestos', label: 'Impuestos y ticket', icon: ReceiptText },
+      { value: 'moneda', label: 'Moneda y tasas', icon: ArrowLeftRight },
+      { value: 'pagos', label: 'Formas de pago', icon: WalletCards, count: fx.methods.length },
       { value: 'reglas', label: 'Reglas de inventario', icon: SlidersHorizontal },
       { value: 'categorias', label: 'Categorías', icon: Tags, count: categories.length },
       { value: 'proveedores', label: 'Proveedores', icon: Truck, count: suppliers.length },
       { value: 'lector', label: 'Lector y códigos', icon: ScanBarcode }
     ],
-    [categories.length, suppliers.length]
+    [categories.length, suppliers.length, fx.methods.length]
   );
 
   const goTo = useCallback(
@@ -94,7 +101,7 @@ export default function SettingsPage() {
             </span>
           }
           title="Configuración del negocio"
-          description="Personaliza los datos de tu negocio, impuestos y ticket, las reglas de inventario y punto de venta, tus categorías, proveedores y lectores de código de barras."
+          description="Personaliza los datos de tu negocio, impuestos y ticket, moneda y tasas de cambio, formas de pago, las reglas de inventario y punto de venta, tus categorías, proveedores y lectores de código de barras."
           actions={
             pending ? (
               // En móvil basta la barra fija inferior.
@@ -141,14 +148,22 @@ export default function SettingsPage() {
               </span>
             </Badge>
             <span className="rounded-md bg-white px-2 py-1 text-data-mono text-on-surface-variant shadow-card tnum">
-              {business.currency} · {business.taxName} {business.taxRate}% {business.pricesIncludeTax ? 'incluido' : 'adicional'}
+              {fx.enabled ? `${business.currency} + Bs` : business.currency} · {business.taxName} {business.taxRate}% {business.pricesIncludeTax ? 'incluido' : 'adicional'}
+              {fx.enabled && fx.settings.igtfEnabled ? ` · IGTF ${fx.settings.igtfRate}%` : ''}
             </span>
+            {fx.enabled && (
+              <Badge tone={fx.rate && !fx.stale ? 'neutral' : 'warning'} size="md">
+                <span className="tnum">{fx.rate ? `Tasa ${formatRate(fx.rate)}` : 'Sin tasa del día'}</span>
+              </Badge>
+            )}
           </div>
         </div>
 
         <div key={`${businessId}:${tab}`} className="animate-fade-in">
           {tab === 'negocio' && <BusinessTab />}
           {tab === 'impuestos' && <TaxReceiptTab onNavigate={goTo} />}
+          {tab === 'moneda' && <CurrencyRatesTab onNavigate={goTo} />}
+          {tab === 'pagos' && <PaymentMethodsTab onNavigate={goTo} />}
           {tab === 'reglas' && <InventoryRulesTab onNavigate={goTo} />}
           {tab === 'categorias' && <CategoriesTab />}
           {tab === 'proveedores' && <SuppliersTab />}

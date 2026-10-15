@@ -16,12 +16,14 @@ const toneClass = {
 /**
  * Tarjeta de resumen con el mismo lenguaje que los KPI del panel, pero con el ícono junto a la
  * etiqueta para que el monto use todo el ancho (caben dos por fila a 360 px).
+ * `sub` es la línea secundaria bajo el monto (equivalente en Bs en modo bimonetario).
  */
 function Stat({
   label,
   icon: Icon,
   tone,
   value,
+  sub,
   footer,
   loading,
   className
@@ -30,6 +32,7 @@ function Stat({
   icon: LucideIcon;
   tone: keyof typeof toneClass;
   value: string;
+  sub?: ReactNode;
   footer: ReactNode;
   loading: boolean;
   className?: string;
@@ -49,7 +52,8 @@ function Stat({
           {value}
         </span>
       )}
-      <span className="text-body-sm text-on-surface-variant">{loading ? ' ' : footer}</span>
+      {sub !== undefined && (loading ? <Skeleton className="h-4 w-24" /> : <span className="min-w-0 text-label-lg text-on-surface-variant tnum">{sub}</span>)}
+      <span className="mt-auto pt-0.5 text-body-sm text-on-surface-variant">{loading ? ' ' : footer}</span>
     </div>
   );
 }
@@ -59,7 +63,8 @@ export function SalesSummary({
   days,
   loading,
   showProfit,
-  money
+  money,
+  formatLocal
 }: {
   stats: SalesStats;
   /** Días del período (para el promedio diario). */
@@ -67,9 +72,29 @@ export function SalesSummary({
   loading: boolean;
   showProfit: boolean;
   money: (n: number) => string;
+  /** Formateador en moneda local (solo en modo bimonetario): agrega el equivalente en Bs. */
+  formatLocal?: (n: number) => string;
 }) {
   const perDay = days > 0 ? stats.count / days : 0;
   const unitsPerTicket = stats.count ? stats.units / stats.count : 0;
+  const withLocal = stats.count - stats.localMissing;
+
+  // Equivalente en Bs: suma de lo registrado en cada venta (a su propia tasa).
+  const localSub = (amount: number, known: number, missing: number): ReactNode => {
+    if (!formatLocal) return undefined;
+    if (known === 0 && missing > 0) return <span className="text-body-sm">Sin tasa registrada</span>;
+    return (
+      <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5" title="Suma de cada venta a la tasa con que se cobró">
+        <span className="max-w-full min-w-0 truncate">{formatLocal(amount)}</span>
+        {missing > 0 && (
+          <span className="text-body-sm font-normal whitespace-nowrap text-amber-700" title={`${formatNumber(missing)} ${missing === 1 ? 'venta no tiene' : 'ventas no tienen'} tasa registrada y no se incluye${missing === 1 ? '' : 'n'}`}>
+            +{formatNumber(missing)} sin tasa
+          </span>
+        )}
+      </span>
+    );
+  };
+
   return (
     <section
       aria-label="Resumen del período"
@@ -81,6 +106,7 @@ export function SalesSummary({
         tone="primary"
         loading={loading}
         value={money(stats.total)}
+        sub={localSub(stats.totalLocal, withLocal, stats.localMissing)}
         footer={<span className="tnum">{formatNumber(stats.units)} artículos vendidos</span>}
         className={showProfit ? 'col-span-2 xl:col-span-1' : undefined}
       />
@@ -98,6 +124,7 @@ export function SalesSummary({
         tone="tertiary"
         loading={loading}
         value={money(stats.avg)}
+        sub={formatLocal ? (withLocal > 0 ? formatLocal(stats.totalLocal / withLocal) : localSub(0, 0, stats.localMissing)) : undefined}
         footer={<span className="tnum">{formatNumber(unitsPerTicket, 'es-MX', 1)} art. por ticket</span>}
       />
       <Stat
@@ -106,6 +133,7 @@ export function SalesSummary({
         tone="error"
         loading={loading}
         value={money(stats.voidedTotal)}
+        sub={localSub(stats.voidedLocal, stats.voidedCount - stats.voidedLocalMissing, stats.voidedLocalMissing)}
         footer={
           <span className={cn('tnum', stats.voidedCount > 0 && 'font-semibold text-error')}>
             {stats.voidedCount === 1 ? '1 ticket anulado' : `${formatNumber(stats.voidedCount)} tickets anulados`}

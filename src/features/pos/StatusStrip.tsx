@@ -2,6 +2,7 @@ import { CloudOff, Printer, ScanBarcode, Wallet, Wifi } from 'lucide-react';
 import { formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CashSession } from '@/types';
+import { RateChip } from './RateControls';
 
 interface StatusStripProps {
   scannerReady: boolean;
@@ -12,10 +13,13 @@ interface StatusStripProps {
   online: boolean;
   autoPrint: boolean;
   onToggleAutoPrint: () => void;
+  /** Modo bimonetario: muestra la tasa vigente. */
+  showRate?: boolean;
 }
 
-const SHORTCUTS: { key: string; label: string; primary?: boolean }[] = [
+const SHORTCUTS: { key: string; label: string; primary?: boolean; wide?: boolean }[] = [
   { key: 'F2', label: 'Buscar' },
+  { key: 'F6', label: 'Pago', wide: true },
   { key: 'F8', label: 'Espera' },
   { key: 'F9', label: 'Descuento' },
   { key: 'F10', label: 'Cobrar', primary: true },
@@ -30,7 +34,7 @@ function Sep() {
   );
 }
 
-/** Franja de estado operativo: lector, caja, red, impresión y atajos. */
+/** Franja de estado operativo: lector, caja, tasa de cambio, red, impresión y atajos. */
 export function StatusStrip({
   scannerReady,
   onFocusScanner,
@@ -39,7 +43,8 @@ export function StatusStrip({
   onCashClick,
   online,
   autoPrint,
-  onToggleAutoPrint
+  onToggleAutoPrint,
+  showRate
 }: StatusStripProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-surface-container px-4 py-2 shadow-card">
@@ -83,6 +88,13 @@ export function StatusStrip({
           {cashLoading ? 'Verificando caja…' : session ? `Caja abierta · ${formatTime(session.openedAt)}` : 'Caja cerrada · Abrir'}
         </button>
 
+        {showRate && (
+          <>
+            <Sep />
+            <RateChip />
+          </>
+        )}
+
         {/* En línea ya se ve en la barra lateral: aquí solo se destaca si se pierde la conexión. */}
         <span aria-hidden className={cn('text-on-surface-variant/40', online ? 'hidden 2xl:inline' : 'hidden sm:inline')}>
           •
@@ -118,7 +130,8 @@ export function StatusStrip({
             className={cn(
               'rounded px-1.5 py-0.5 font-sans text-[11px] font-bold whitespace-nowrap tnum',
               s.primary ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface',
-              s.key === 'Esc' && 'hidden xl:inline'
+              s.key === 'Esc' && 'hidden xl:inline',
+              s.wide && 'hidden 2xl:inline'
             )}
           >
             {s.key} {s.label}

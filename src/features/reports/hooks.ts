@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { orderBy, query, Timestamp, where } from 'firebase/firestore';
+import { limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useQueryData } from '@/hooks/data';
 import { refs } from '@/services/refs';
 import type { DateRange } from '@/lib/dates';
-import type { StockMovement } from '@/types';
+import type { FxHistoryEntry, StockMovement } from '@/types';
 
 /** Hora actual que se refresca cada `intervalMs` (para el "corte en tiempo real"). */
 export function useNow(intervalMs = 30_000) {
@@ -68,4 +68,34 @@ export function useRangeMovements(businessId: string, range: DateRange | null) {
   const state = useQueryData<StockMovement>(q);
   const data = useMemo(() => state.data.filter((m) => m.type === 'out'), [state.data]);
   return { ...state, data };
+}
+
+/**
+ * Historial de tasas del rango (por `createdAt`, en orden cronológico) y el último registro previo al
+ * rango (`baseline`, la tasa con que arrancó el período). Solo consulta si `enabled` (modo bimonetario).
+ */
+export function useFxHistory(businessId: string, range: DateRange | null, enabled: boolean) {
+  const fromMs = range?.from.getTime();
+  const toMs = range?.to.getTime();
+  const inRange = useMemo(() => {
+    if (!enabled || !businessId || fromMs === undefined || toMs === undefined) return null;
+    return query(
+      refs.fxHistory(businessId),
+      where('createdAt', '>=', Timestamp.fromMillis(fromMs)),
+      where('createdAt', '<=', Timestamp.fromMillis(toMs)),
+      orderBy('createdAt', 'asc')
+    );
+  }, [enabled, businessId, fromMs, toMs]);
+  const before = useMemo(() => {
+    if (!enabled || !businessId || fromMs === undefined) return null;
+    return query(refs.fxHistory(businessId), where('createdAt', '<', Timestamp.fromMillis(fromMs)), orderBy('createdAt', 'desc'), limit(1));
+  }, [enabled, businessId, fromMs]);
+  const entries = useQueryData<FxHistoryEntry>(inRange);
+  const prev = useQueryData<FxHistoryEntry>(before);
+  return {
+    entries: entries.data,
+    baseline: prev.data[0] ?? null,
+    loading: entries.loading || prev.loading,
+    error: entries.error ?? prev.error
+  };
 }

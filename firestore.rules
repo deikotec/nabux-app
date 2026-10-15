@@ -38,14 +38,19 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
     function validRole(r) { return r in ['admin', 'manager', 'cashier', 'warehouse']; }
+    function validRate(v) { return v == null || (v is number && v > 0); }
     function validPermissions(p) {
       return p is list && p.toSet().difference(['pos', 'discounts', 'void', 'inventory', 'reports', 'staff', 'settings'].toSet()).size() == 0;
     }
 
     // ---------- Usuarios ----------
+    // OJO: este proyecto también lo usa la app "cibus", que guarda su perfil en users/{uid}
+    // y su historial en users/{uid}/days/{day}. Estas reglas conservan su acceso original.
     match /users/{userId} {
-      allow read, create, update: if signedIn() && uid() == userId;
-      allow delete: if false;
+      allow read, write: if signedIn() && uid() == userId;
+      match /days/{day} {
+        allow read, write: if signedIn() && uid() == userId;
+      }
     }
 
     // ---------- Invitaciones ----------
@@ -84,6 +89,23 @@ service cloud.firestore {
           && ((existsAfter(bizPath(bid)) && getAfter(bizPath(bid)).data.ownerId == uid())
               || (can(bid, 'pos') && request.resource.data.sale == 1));
         allow update: if can(bid, 'pos') && request.resource.data.sale == resource.data.sale + 1;
+      }
+
+      // Tasas de cambio vigentes (modo bimonetario: Bs por $)
+      match /meta/fx {
+        allow read: if isMember(bid);
+        allow write: if canAny(bid, ['settings', 'pos', 'inventory'])
+          && validRate(request.resource.data.bcv)
+          && validRate(request.resource.data.parallel)
+          && validRate(request.resource.data.custom)
+          && request.resource.data.updatedBy == uid();
+      }
+
+      // Historial inmutable de tasas
+      match /fxHistory/{hid} {
+        allow read: if isMember(bid);
+        allow create: if canAny(bid, ['settings', 'pos', 'inventory']) && request.resource.data.userId == uid();
+        allow update, delete: if false;
       }
 
       // ---------- Equipo ----------

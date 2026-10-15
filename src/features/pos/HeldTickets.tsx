@@ -1,4 +1,4 @@
-import { ArchiveRestore, CirclePause, Trash2 } from 'lucide-react';
+import { ArchiveRestore, CirclePause, Trash2, Wallet } from 'lucide-react';
 import { Button, EmptyState, IconButton, Modal } from '@/components/ui';
 import { formatNumber, formatRelative, formatTime } from '@/lib/format';
 import type { HeldTicket } from './types';
@@ -8,6 +8,8 @@ interface HeldTicketsModalProps {
   onClose: () => void;
   held: HeldTicket[];
   money: (n: number) => string;
+  /** Equivalente en Bs a la tasa actual (modo bimonetario). */
+  moneyLocal?: (n: number) => string;
   /** Hay un ticket en curso (se pondrá en espera al recuperar otro). */
   hasCurrent: boolean;
   onRestore: (id: string) => void;
@@ -15,7 +17,7 @@ interface HeldTicketsModalProps {
 }
 
 /** Lista de tickets pausados en este equipo para recuperar o descartar. */
-export function HeldTicketsModal({ open, onClose, held, money, hasCurrent, onRestore, onDiscard }: HeldTicketsModalProps) {
+export function HeldTicketsModal({ open, onClose, held, money, moneyLocal, hasCurrent, onRestore, onDiscard }: HeldTicketsModalProps) {
   return (
     <Modal
       open={open}
@@ -46,6 +48,7 @@ export function HeldTicketsModal({ open, onClose, held, money, hasCurrent, onRes
           {held.map((t) => {
             const names = t.lines.map((l) => l.name);
             const preview = names.slice(0, 3).join(', ') + (names.length > 3 ? ` y ${names.length - 3} más` : '');
+            const paid = (t.payments ?? []).filter((x) => !x.auto && Number(x.amount) > 0).length;
             return (
               <li key={t.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-colors hover:border-slate-300">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-tertiary-fixed text-tertiary">
@@ -54,11 +57,20 @@ export function HeldTicketsModal({ open, onClose, held, money, hasCurrent, onRes
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="truncate text-label-lg text-on-surface">{t.customerName.trim() || 'Cliente mostrador'}</p>
-                    <span className="shrink-0 text-label-lg text-on-surface tnum">{money(t.total)}</span>
+                    <span className="flex shrink-0 flex-col items-end tnum">
+                      <span className="text-label-lg text-on-surface">{money(t.total)}</span>
+                      {moneyLocal && <span className="text-body-sm font-semibold text-secondary">{moneyLocal(t.total)}</span>}
+                    </span>
                   </div>
                   <p className="text-body-sm text-on-surface-variant tnum">
                     {formatNumber(t.itemCount)} art. · {formatTime(t.createdAt)} ({formatRelative(t.createdAt)}) · {t.cashierName}
                   </p>
+                  {paid > 0 && (
+                    <p className="flex items-center gap-1 text-body-sm font-semibold text-secondary">
+                      <Wallet className="size-3.5" />
+                      {paid === 1 ? '1 pago registrado' : `${paid} pagos registrados`} · se recupera con el ticket
+                    </p>
+                  )}
                   <p className="truncate text-body-sm text-on-surface-variant" title={names.join(', ')}>
                     {preview}
                   </p>

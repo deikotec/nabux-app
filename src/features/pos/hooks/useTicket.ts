@@ -5,10 +5,11 @@ import { useToast } from '@/components/ui';
 import { FREE_AMOUNT_ITEM_NAME } from '@/config/app';
 import { computeTotals } from '@/lib/totals';
 import { formatNumber } from '@/lib/format';
+import { activePaymentMethods, isDualCurrency } from '@/lib/payments';
 import { beep, round2 } from '@/lib/utils';
-import type { PaymentMethod, Product, SaleItem } from '@/types';
-import { allowsDecimalQty, discountToAmount, newId, roundQty } from '../posUtils';
-import type { CartLine, TicketDiscount } from '../types';
+import type { Business, Product, SaleItem } from '@/types';
+import { allowsDecimalQty, discountToAmount, exemptAmount, newId, roundQty } from '../posUtils';
+import type { CartLine, PaymentEntry, TicketDiscount } from '../types';
 
 export interface TicketHighlight {
   key: string;
@@ -20,10 +21,23 @@ export interface TicketSnapshot {
   lines: CartLine[];
   discount: TicketDiscount | null;
   customerName: string;
+  payments?: PaymentEntry[];
+  changeMethodId?: string | null;
 }
 
 /**
- * Estado del ticket en curso: líneas, descuento, cliente y pago.
+ * Pagos con los que arranca un ticket. Con una sola moneda se preselecciona el efectivo exacto
+ * (como siempre: F10 cobra sin pasos extra); en modo bimonetario el cajero elige la forma de pago.
+ */
+export function defaultPayments(business: Pick<Business, 'fx' | 'paymentMethods'>): PaymentEntry[] {
+  if (isDualCurrency(business)) return [];
+  const methods = activePaymentMethods(business);
+  const m = methods.find((x) => x.kind === 'cash') ?? methods[0];
+  return m ? [{ key: newId('pay-'), methodId: m.id, amount: '', reference: '', auto: true }] : [];
+}
+
+/**
+ * Estado del ticket en curso: líneas, descuento, cliente y pagos capturados.
  * Las validaciones de stock usan una referencia sincrónica para soportar
  * ráfagas de escaneo (varios Enter antes de que React re-renderice).
  */
@@ -36,8 +50,8 @@ export function useTicket() {
   const linesRef = useRef<CartLine[]>([]);
   const [discount, setDiscount] = useState<TicketDiscount | null>(null);
   const [customerName, setCustomerName] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [cashReceived, setCashReceived] = useState<number | ''>('');
+  const [payments, setPayments] = useState<PaymentEntry[]>(() => defaultPayments(business));
+  const [changeMethodId, setChangeMethodId] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<TicketHighlight | null>(null);
   const nonceRef = useRef(0);
 
@@ -98,7 +112,8 @@ export function useTicket() {
                 unit: product.unit ?? '',
                 unitPrice: round2(Number(product.salePrice) || 0),
                 unitCost: round2(Number(product.costPrice) || 0),
-                qty: roundQty(qty)
+                qty: roundQty(qty),
+                ...(product.taxExempt ? { taxExempt: true } : {})
               }
             ];
       commit(next);
@@ -109,9 +124,9 @@ export function useTicket() {
     [allowNegative, scanBeep, commit, touch, toast]
   );
 
-  /** Agrega un artículo no catalogado (monto libre). */
+  /** Agrega un artículo no catalogado (monto libre, en moneda base). */
   const addFreeAmount = useCallback(
-    (name: string, amount: number) => {
+    (name: string, amount: number, taxExempt = false) => {
       const price = round2(amount);
       if (!(price > 0)) return false;
       const key = newId('free-');
@@ -126,7 +141,8 @@ export function useTicket() {
           unit: '',
           unitPrice: price,
           unitCost: 0,
-          qty: 1
+          qty: 1,
+          ...(taxExempt ? { taxExempt: true } : {})
         }
       ]);
       touch(key);
@@ -140,13 +156,14 @@ export function useTicket() {
     (key: string) => {
       const next = linesRef.current.filter((l) => l.key !== key);
       commit(next);
-      // Ticket vacío: el descuento y el efectivo capturados ya no aplican.
+      // Ticket vacío: el descuento y los pagos capturados ya no aplican.
       if (!next.length) {
         setDiscount(null);
-        setCashReceived('');
+        setPayments(defaultPayments(business));
+        setChangeMethodId(null);
       }
     },
-    [commit]
+    [commit, business]
   );
 
   /** Fija la cantidad de una línea respetando el stock (si no se permite negativo). */
@@ -190,21 +207,21 @@ export function useTicket() {
     commit([]);
     setDiscount(null);
     setCustomerName('');
-    setPaymentMethod('cash');
-    setCashReceived('');
+    setPayments(defaultPayments(business));
+    setChangeMethodId(null);
     setHighlight(null);
-  }, [commit]);
+  }, [commit, business]);
 
   const load = useCallback(
     (snap: TicketSnapshot) => {
       commit(snap.lines);
       setDiscount(canDiscount ? snap.discount : null);
       setCustomerName(snap.customerName);
-      setPaymentMethod('cash');
-      setCashReceived('');
+      setPayments(snap.payments?.length ? snap.payments : defaultPayments(business));
+      setChangeMethodId(snap.changeMethodId ?? null);
       setHighlight(null);
     },
-    [commit, canDiscount]
+    [commit, canDiscount, business]
   );
 
   const items: SaleItem[] = useMemo(
@@ -217,7 +234,8 @@ export function useTicket() {
         qty: l.qty,
         unitPrice: l.unitPrice,
         unitCost: l.unitCost,
-        total: round2(l.unitPrice * l.qty)
+        total: round2(l.unitPrice * l.qty),
+        ...(l.taxExempt ? { taxExempt: true } : {})
       })),
     [lines]
   );
@@ -243,12 +261,15 @@ export function useTicket() {
     [items, business.taxRate, business.pricesIncludeTax]
   );
 
-  const received = paymentMethod === 'cash' ? (cashReceived === '' ? totals.total : round2(cashReceived)) : totals.total;
-  const change = round2(received - totals.total);
+  /** Importe exento de impuesto (después del descuento). */
+  const exemptTotal = useMemo(() => exemptAmount(lines, discountAmount), [lines, discountAmount]);
+
+  /** Pagos con monto capturado a mano (dinero que el cajero ya registró). */
+  const recordedPayments = useMemo(() => payments.filter((p) => !p.auto && Number(p.amount) > 0), [payments]);
 
   const snapshot = useCallback(
-    (): TicketSnapshot => ({ lines: linesRef.current, discount, customerName }),
-    [discount, customerName]
+    (): TicketSnapshot => ({ lines: linesRef.current, discount, customerName, payments, changeMethodId }),
+    [discount, customerName, payments, changeMethodId]
   );
 
   return {
@@ -262,15 +283,15 @@ export function useTicket() {
     canDiscount,
     allowNegative,
     customerName,
-    paymentMethod,
-    cashReceived,
-    received,
-    change,
+    exemptTotal,
+    payments,
+    recordedPayments,
+    changeMethodId,
     highlight,
     setDiscount,
     setCustomerName,
-    setPaymentMethod,
-    setCashReceived,
+    setPayments,
+    setChangeMethodId,
     addProduct,
     addFreeAmount,
     setQty,

@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { BusinessProvider } from '@/contexts/BusinessContext';
 import { CatalogProvider } from '@/contexts/CatalogContext';
+import { FxProvider } from '@/contexts/FxContext';
 import { CashProvider } from '@/contexts/CashContext';
 import { ConfirmProvider, PageLoader, ToastProvider } from '@/components/ui';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -38,35 +39,37 @@ export default function App() {
         <ConfirmProvider>
           <AuthProvider>
             <BusinessProvider>
-              <CatalogProvider>
-                <CashProvider>
-                  <Routes>
-                    <Route element={<PublicOnly />}>
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/registro" element={<RegisterPage />} />
-                      <Route path="/recuperar" element={<ForgotPasswordPage />} />
-                    </Route>
+              <FxProvider>
+                <CatalogProvider>
+                  <CashProvider>
+                    <Routes>
+                      <Route element={<PublicOnly />}>
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/registro" element={<RegisterPage />} />
+                        <Route path="/recuperar" element={<ForgotPasswordPage />} />
+                      </Route>
 
-                    <Route element={<RequireAuth />}>
-                      <Route path="/bienvenida" element={<OnboardingPage />} />
-                      <Route element={<RequireBusiness />}>
-                        <Route element={<AppLayout />}>
-                          <Route index element={<Page><DashboardPage /></Page>} />
-                          <Route path="pos" element={<Page perm="pos"><PosPage /></Page>} />
-                          <Route path="inventario" element={<Page><InventoryPage /></Page>} />
-                          <Route path="ventas" element={<Page><SalesPage /></Page>} />
-                          <Route path="reportes" element={<Page perm="reports"><ReportsPage /></Page>} />
-                          <Route path="personal" element={<Page perm="staff"><StaffPage /></Page>} />
-                          <Route path="configuracion" element={<Page perm="settings"><SettingsPage /></Page>} />
-                          <Route path="perfil" element={<Page><ProfilePage /></Page>} />
+                      <Route element={<RequireAuth />}>
+                        <Route path="/bienvenida" element={<OnboardingPage />} />
+                        <Route element={<RequireBusiness />}>
+                          <Route element={<AppLayout />}>
+                            <Route index element={<Page><DashboardPage /></Page>} />
+                            <Route path="pos" element={<Page perm="pos"><PosPage /></Page>} />
+                            <Route path="inventario" element={<Page><InventoryPage /></Page>} />
+                            <Route path="ventas" element={<Page><SalesPage /></Page>} />
+                            <Route path="reportes" element={<Page perm="reports"><ReportsPage /></Page>} />
+                            <Route path="personal" element={<Page perm="staff"><StaffPage /></Page>} />
+                            <Route path="configuracion" element={<Page perm="settings"><SettingsPage /></Page>} />
+                            <Route path="perfil" element={<Page><ProfilePage /></Page>} />
+                          </Route>
                         </Route>
                       </Route>
-                    </Route>
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </CashProvider>
-              </CatalogProvider>
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </CashProvider>
+                </CatalogProvider>
+              </FxProvider>
             </BusinessProvider>
           </AuthProvider>
         </ConfirmProvider>

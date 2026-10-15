@@ -2,7 +2,16 @@ import type { TS } from '@/types';
 
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
+/** Símbolos que Intl muestra desactualizados (ej. VES → "Bs.S"). */
+const SYMBOL_OVERRIDES: Record<string, string> = { VES: 'Bs.' };
+
 export function formatMoney(amount: number | null | undefined, currency = 'MXN', locale = 'es-MX'): string {
+  const override = SYMBOL_OVERRIDES[currency];
+  if (override) {
+    const n = Number(amount) || 0;
+    const body = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(n));
+    return `${n < 0 ? '-' : ''}${override} ${body}`;
+  }
   const key = `${locale}|${currency}`;
   let fmt = moneyFormatters.get(key);
   if (!fmt) {
@@ -18,6 +27,7 @@ export function formatMoney(amount: number | null | undefined, currency = 'MXN',
 
 /** Símbolo de la moneda ("$", "€", "S/", "Q"…). */
 export function currencySymbol(currency = 'MXN', locale = 'es-MX'): string {
+  if (SYMBOL_OVERRIDES[currency]) return SYMBOL_OVERRIDES[currency];
   try {
     const part = new Intl.NumberFormat(locale, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' })
       .formatToParts(0)
@@ -30,6 +40,10 @@ export function currencySymbol(currency = 'MXN', locale = 'es-MX'): string {
 
 /** Formato compacto para ejes de gráficas: $1.2k, $3.4M */
 export function formatMoneyCompact(amount: number, currency = 'MXN', locale = 'es-MX'): string {
+  if (SYMBOL_OVERRIDES[currency]) {
+    const body = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(amount || 0);
+    return `${SYMBOL_OVERRIDES[currency]} ${body}`;
+  }
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',

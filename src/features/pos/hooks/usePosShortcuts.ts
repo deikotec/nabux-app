@@ -6,6 +6,8 @@ export interface PosShortcutHandlers {
   onSearch: () => void;
   /** F3 */
   onFreeAmount: () => void;
+  /** F6: agregar pago (enfoca las formas de pago) */
+  onAddPayment: () => void;
   /** F8 */
   onHold: () => void;
   /** F9 */
@@ -18,7 +20,7 @@ export interface PosShortcutHandlers {
   onTypeAhead: () => void;
 }
 
-const FKEYS = ['F2', 'F3', 'F8', 'F9', 'F10'] as const;
+const FKEYS = ['F2', 'F3', 'F6', 'F8', 'F9', 'F10'] as const;
 type FKey = (typeof FKEYS)[number];
 
 /**
@@ -35,12 +37,13 @@ export function usePosShortcuts(handlers: PosShortcutHandlers) {
     const onKey = (e: KeyboardEvent) => {
       const h = ref.current;
       if ((FKEYS as readonly string[]).includes(e.key)) {
-        // Evita la acción del navegador (F3 buscar, F10 menú) aunque no actuemos.
+        // Evita la acción del navegador (F3 buscar, F6 barra de direcciones, F10 menú) aunque no actuemos.
         e.preventDefault();
         if (e.repeat || blockingDialogOpen()) return;
         const map: Record<FKey, () => void> = {
           F2: h.onSearch,
           F3: h.onFreeAmount,
+          F6: h.onAddPayment,
           F8: h.onHold,
           F9: h.onDiscount,
           F10: h.onCheckout

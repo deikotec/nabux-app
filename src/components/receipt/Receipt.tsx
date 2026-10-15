@@ -1,51 +1,58 @@
 import { createPortal } from 'react-dom';
 import { Printer, ReceiptText } from 'lucide-react';
-import { PAYMENT_LABELS } from '@/config/app';
+import { RATE_SOURCE_LABELS } from '@/config/app';
 import { formatDate, formatMoney, formatTime } from '@/lib/format';
+import { formatRate } from '@/lib/fx';
+import { fxSettingsOf, paymentMethodsOf, salePayments } from '@/lib/payments';
 import type { Business, Sale } from '@/types';
 import { Badge, Button, Modal } from '@/components/ui';
 
-type ReceiptBusiness = Pick<Business, 'name' | 'legalName' | 'taxId' | 'address' | 'phone' | 'currency' | 'locale' | 'taxName' | 'taxRate' | 'receiptFooter' | 'logoUrl'>;
+type ReceiptBusiness = Pick<
+  Business,
+  'name' | 'legalName' | 'taxId' | 'address' | 'phone' | 'currency' | 'locale' | 'taxName' | 'taxRate' | 'receiptFooter' | 'logoUrl' | 'fx' | 'country' | 'paymentMethods'
+>;
 
 /** Ticket en formato 80 mm. Se usa en pantalla y para impresión. */
 export function Receipt({ sale, business }: { sale: Sale; business: ReceiptBusiness }) {
-  const m = (n: number | null | undefined) => formatMoney(n, business.currency, business.locale);
+  const fx = fxSettingsOf(business);
+  const baseCurrency = sale.currency || business.currency;
+  const localCurrency = sale.localCurrency ?? null;
+  const rate = sale.rate ?? null;
+  const m = (n: number | null | undefined) => formatMoney(n, baseCurrency, business.locale);
+  const inCurrency = (n: number | null | undefined, currency: string) =>
+    formatMoney(n, currency || baseCurrency, currency === localCurrency ? fx.localLocale : business.locale);
+  const local = (n: number | null | undefined) => (rate && localCurrency ? inCurrency((Number(n) || 0) * rate, localCurrency) : null);
+  const payments = salePayments(sale);
+  const hasExempt = sale.items.some((i) => i.taxExempt);
+  const igtf = sale.igtf ?? 0;
+
   return (
     <div className="mx-auto w-full max-w-[300px] bg-white font-mono text-[12px] leading-snug text-black">
       <div className="flex flex-col items-center gap-0.5 text-center">
         {business.logoUrl && <img src={business.logoUrl} alt="" className="mb-1 h-10 w-auto object-contain grayscale" />}
         <div className="text-[14px] font-bold uppercase">{business.name}</div>
         {business.legalName && business.legalName !== business.name && <div>{business.legalName}</div>}
-        {business.taxId && <div>RFC/NIT: {business.taxId}</div>}
+        {business.taxId && (
+          <div>
+            {fx.enabled || business.country === 'VE' ? 'RIF' : 'RFC/NIT'}: {business.taxId}
+          </div>
+        )}
         {business.address && <div>{business.address}</div>}
         {business.phone && <div>Tel. {business.phone}</div>}
       </div>
       <div className="my-2 border-t border-dashed border-black" />
-      <div className="flex justify-between">
-        <span>Ticket</span>
-        <span className="font-bold">{sale.folio}</span>
-      </div>
-      <div className="flex justify-between">
-        <span>Fecha</span>
-        <span>
-          {formatDate(sale.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric' })} {formatTime(sale.createdAt)}
-        </span>
-      </div>
-      <div className="flex justify-between">
-        <span>Atendió</span>
-        <span>{sale.cashierName}</span>
-      </div>
-      {sale.customerName && (
-        <div className="flex justify-between">
-          <span>Cliente</span>
-          <span className="max-w-[60%] truncate text-right">{sale.customerName}</span>
-        </div>
-      )}
+      <Row label="Ticket" value={sale.folio} bold />
+      <Row label="Fecha" value={`${formatDate(sale.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric' })} ${formatTime(sale.createdAt)}`} />
+      <Row label="Atendió" value={sale.cashierName} />
+      {sale.customerName && <Row label="Cliente" value={sale.customerName} />}
       <div className="my-2 border-t border-dashed border-black" />
       <div className="flex flex-col gap-1">
         {sale.items.map((it, i) => (
           <div key={i}>
-            <div className="break-words">{it.name}</div>
+            <div className="break-words">
+              {it.name}
+              {it.taxExempt ? ' (E)' : ''}
+            </div>
             <div className="flex justify-between pl-2">
               <span>
                 {it.qty} x {m(it.unitPrice)}
@@ -65,13 +72,47 @@ export function Receipt({ sale, business }: { sale: Sale; business: ReceiptBusin
         )}
         <Row label="Subtotal" value={m(sale.subtotal)} />
         <Row label={`${business.taxName || 'IVA'} (${business.taxRate}%)`} value={m(sale.tax)} />
+        {hasExempt && <div className="text-[11px]">(E) Exento de {business.taxName || 'IVA'}</div>}
         <div className="mt-1 flex justify-between text-[15px] font-bold">
           <span>TOTAL</span>
           <span>{m(sale.total)}</span>
         </div>
-        <Row label={`Pago: ${PAYMENT_LABELS[sale.paymentMethod]}`} value={sale.paymentMethod === 'cash' ? m(sale.cashReceived) : m(sale.total)} />
-        {sale.paymentMethod === 'cash' && <Row label="Cambio" value={m(sale.change)} />}
+        {local(sale.total) && (
+          <div className="flex justify-between font-bold">
+            <span>TOTAL {localCurrency}</span>
+            <span>{sale.totalLocal ? inCurrency(sale.totalLocal, localCurrency as string) : local(sale.total)}</span>
+          </div>
+        )}
+        {igtf > 0 && (
+          <>
+            <Row label={`IGTF (${sale.igtfRate ?? fx.igtfRate}%)`} value={m(igtf)} />
+            <Row label="Total pagado" value={m(sale.amountDue ?? sale.total + igtf)} bold />
+          </>
+        )}
       </div>
+      <div className="my-2 border-t border-dashed border-black" />
+      <div className="flex flex-col gap-0.5">
+        <div className="font-bold">Forma de pago</div>
+        {payments.map((p, i) => (
+          <div key={i}>
+            <Row label={p.label} value={inCurrency(p.amount, p.currency)} />
+            {p.reference && <div className="pl-2 text-[11px]">Ref. {p.reference}</div>}
+          </div>
+        ))}
+        {(sale.changeAmount ?? 0) > 0 ? (
+          <Row
+            label={`Vuelto${sale.changeMethodId ? ` (${payments.find((p) => p.methodId === sale.changeMethodId)?.label ?? paymentMethodsOf(business).find((x) => x.id === sale.changeMethodId)?.label ?? labelFromId(sale.changeMethodId)})` : ''}`}
+            value={inCurrency(sale.changeAmount, sale.changeCurrency || baseCurrency)}
+          />
+        ) : sale.payments === undefined && sale.paymentMethod === 'cash' && (sale.change ?? 0) > 0 ? (
+          <Row label="Cambio" value={m(sale.change)} />
+        ) : null}
+      </div>
+      {rate && (
+        <div className="mt-2 text-center text-[11px]">
+          Tasa{sale.rateSource ? ` ${RATE_SOURCE_LABELS[sale.rateSource]}` : ''}: {formatRate(rate)}
+        </div>
+      )}
       <div className="my-2 border-t border-dashed border-black" />
       <div className="text-center">Artículos: {sale.itemCount}</div>
       {sale.status === 'voided' && <div className="mt-1 text-center text-[14px] font-bold">*** VENTA ANULADA ***</div>}
@@ -81,11 +122,15 @@ export function Receipt({ sale, business }: { sale: Sale; business: ReceiptBusin
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function labelFromId(id: string) {
+  return id.replace(/_/g, ' ');
+}
+
+function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
-    <div className="flex justify-between gap-2">
+    <div className={`flex justify-between gap-2${bold ? ' font-bold' : ''}`}>
       <span>{label}</span>
-      <span>{value}</span>
+      <span className="text-right">{value}</span>
     </div>
   );
 }
@@ -112,12 +157,19 @@ export function ReceiptModal({
   /** Botones extra en el pie (ej. "Nueva venta", "Anular"). */
   actions?: React.ReactNode;
 }) {
+  const subtitle = sale
+    ? `${sale.folio} · ${formatMoney(sale.total, sale.currency || business.currency, business.locale)}${
+        sale.rate && sale.localCurrency
+          ? ` · ${formatMoney(sale.totalLocal ?? sale.total * sale.rate, sale.localCurrency, fxSettingsOf(business).localLocale)}`
+          : ''
+      }`
+    : undefined;
   return (
     <Modal
       open={!!sale}
       onClose={onClose}
       title={title}
-      subtitle={sale ? `${sale.folio} · ${formatMoney(sale.total, business.currency, business.locale)}` : undefined}
+      subtitle={subtitle}
       icon={ReceiptText}
       badge={sale?.status === 'voided' ? <Badge tone="danger">Anulada</Badge> : sale?.offline ? <Badge tone="warning">Sin conexión</Badge> : undefined}
       size="sm"

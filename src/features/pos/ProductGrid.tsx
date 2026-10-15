@@ -13,6 +13,8 @@ interface ProductGridProps {
   cartQty: Map<string, number>;
   allowNegative: boolean;
   money: (n: number) => string;
+  /** Equivalente en moneda local (Bs) bajo el precio; solo en modo bimonetario con tasa. */
+  moneyLocal?: (n: number) => string;
   onAdd: (p: Product) => void;
   onFreeAmount: () => void;
   onShowMore: () => void;
@@ -29,6 +31,7 @@ export function ProductGrid({
   cartQty,
   allowNegative,
   money,
+  moneyLocal,
   onAdd,
   onFreeAmount,
   onShowMore,
@@ -43,7 +46,15 @@ export function ProductGrid({
         {loading
           ? Array.from({ length: 7 }, (_, i) => <div key={i} className="h-[228px] animate-pulse rounded-2xl border border-slate-200/60 bg-white/70" />)
           : products.map((p) => (
-              <ProductCard key={p.id} product={p} inCart={cartQty.get(p.id) ?? 0} allowNegative={allowNegative} money={money} onAdd={onAdd} />
+              <ProductCard
+                key={p.id}
+                product={p}
+                inCart={cartQty.get(p.id) ?? 0}
+                allowNegative={allowNegative}
+                money={money}
+                moneyLocal={moneyLocal}
+                onAdd={onAdd}
+              />
             ))}
       </div>
 
@@ -100,12 +111,14 @@ const ProductCard = memo(function ProductCard({
   inCart,
   allowNegative,
   money,
+  moneyLocal,
   onAdd
 }: {
   product: Product;
   inCart: number;
   allowNegative: boolean;
   money: (n: number) => string;
+  moneyLocal?: (n: number) => string;
   onAdd: (p: Product) => void;
 }) {
   const status = stockStatus(p);
@@ -113,11 +126,12 @@ const ProductCard = memo(function ProductCard({
   const blocked = !allowNegative && stock - inCart <= 0;
   const tone = STOCK_PILL[status];
   const price = money(p.salePrice);
+  const local = moneyLocal ? moneyLocal(Number(p.salePrice) || 0) : null;
   return (
     <button
       type="button"
       onClick={() => onAdd(p)}
-      aria-label={`Agregar ${p.name}, ${price}${status === 'out' ? ', agotado' : `, ${formatNumber(stock)} disponibles`}`}
+      aria-label={`Agregar ${p.name}, ${price}${local ? ` (${local})` : ''}${p.taxExempt ? ', exento de IVA' : ''}${status === 'out' ? ', agotado' : `, ${formatNumber(stock)} disponibles`}`}
       aria-disabled={blocked || undefined}
       className={cn(
         'group relative flex min-w-0 flex-col rounded-2xl border border-slate-200/80 bg-white p-2 text-left shadow-card transition-all',
@@ -149,14 +163,24 @@ const ProductCard = memo(function ProductCard({
         )}
       </div>
       <div className="mt-2 flex min-w-0 flex-col px-0.5">
-        <span className="truncate text-[11px] font-medium text-on-surface-variant tnum">{p.sku ? `SKU: ${p.sku}` : p.category || '—'}</span>
+        <span className="truncate text-[11px] font-medium text-on-surface-variant tnum">
+          {p.sku ? `SKU: ${p.sku}` : p.category || '—'}
+          {p.taxExempt && <span className="font-bold text-on-tertiary-fixed-variant" title="Exento de IVA"> · (E)</span>}
+        </span>
         <span className="line-clamp-2 min-h-[2.5em] text-[13px] leading-tight font-semibold text-on-surface" title={p.name}>
           {p.name}
         </span>
       </div>
       <div className="mt-auto flex items-center justify-between gap-2 px-0.5 pt-2">
-        <span className="truncate text-headline-md font-bold text-on-surface tnum" title={price}>
-          {price}
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-headline-md font-bold text-on-surface tnum" title={price}>
+            {price}
+          </span>
+          {local && (
+            <span className="truncate text-[11px] leading-tight font-semibold text-secondary tnum" title={local}>
+              {local}
+            </span>
+          )}
         </span>
         <span
           aria-hidden

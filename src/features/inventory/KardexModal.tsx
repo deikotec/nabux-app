@@ -136,7 +136,8 @@ export function KardexModal({ product, onClose, onRegister }: { product: Product
                         </td>
                         <td className="max-w-64 px-4 py-2.5 text-body-sm text-on-surface">
                           <span className="line-clamp-2">{m.reason || '—'}</span>
-                          {m.unitCost ? <span className="text-on-surface-variant tnum">Costo unit. {money(m.unitCost)}</span> : null}
+                          {/* Solo en $: el movimiento no guarda la tasa del día y la de hoy daría un Bs engañoso. */}
+                          {m.unitCost ? <span className="block text-on-surface-variant tnum">Costo unit. {money(m.unitCost)}</span> : null}
                         </td>
                         <td className="px-4 py-2.5 text-body-sm text-on-surface-variant">{m.userName || '—'}</td>
                       </tr>
@@ -158,6 +159,7 @@ export function KardexModal({ product, onClose, onRegister }: { product: Product
                         {meta.label}
                       </Badge>
                       <span className="truncate text-body-sm text-on-surface">{m.reason || '—'}</span>
+                      {m.unitCost ? <span className="text-body-sm text-on-surface-variant tnum">Costo unit. {money(m.unitCost)}</span> : null}
                       <span className="text-body-sm text-on-surface-variant">
                         {m.userName || '—'} · <span className="tnum">{formatDateTime(m.createdAt)}</span>
                       </span>

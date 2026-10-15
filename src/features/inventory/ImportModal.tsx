@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { CircleCheck, CloudUpload, Download, FileSpreadsheet, FileUp, Info, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Calculator, CircleCheck, CloudUpload, Download, FileSpreadsheet, FileUp, Info, RefreshCw, TriangleAlert } from 'lucide-react';
 import { Badge, Button, Modal, Segmented, useToast } from '@/components/ui';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCatalog } from '@/contexts/CatalogContext';
@@ -7,8 +7,10 @@ import { useOnline } from '@/hooks/data';
 import { formatNumber } from '@/lib/format';
 import { cn, downloadFile, errorMessage } from '@/lib/utils';
 import { importProducts } from '@/services/products';
-import { CSV_HEADERS, templateCsv } from './helpers';
+import { LocalLine } from './FxBits';
+import { csvColumns, templateCsv, type CsvOptions } from './helpers';
 import { buildImportRows, readTextFile, type ImportParseResult, type ImportStatus } from './importCsv';
+import { useInventoryFx } from './useInventoryFx';
 
 const PREVIEW_LIMIT = 60;
 
@@ -20,13 +22,16 @@ const STATUS_BADGE: Record<ImportStatus, { label: string; tone: 'success' | 'war
   error: { label: 'Con error', tone: 'danger' }
 };
 
-export function downloadImportTemplate() {
-  downloadFile('plantilla-productos.csv', templateCsv());
+/** Plantilla de importación: con `precio_bs` si el negocio es bimonetario y `exento` en Venezuela. */
+export function downloadImportTemplate(opts: CsvOptions = {}) {
+  downloadFile('plantilla-productos.csv', templateCsv(opts));
 }
 
 export function ImportModal({ onClose }: { onClose: () => void }) {
   const { business, businessId, actor, money } = useActiveBusiness();
   const { products, suppliers, categories } = useCatalog();
+  const ifx = useInventoryFx();
+  const csvOptions: CsvOptions = { dual: ifx.dual, exempt: ifx.exemptUi };
   const online = useOnline();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -47,7 +52,18 @@ export function ImportModal({ onClose }: { onClose: () => void }) {
     setReading(true);
     try {
       const text = await readTextFile(file);
-      const parsed = buildImportRows(text, { products, suppliers, categories, settings: business.settings });
+      const parsed = buildImportRows(text, {
+        products,
+        suppliers,
+        categories,
+        settings: business.settings,
+        dual: ifx.dual,
+        rate: ifx.rate,
+        exempt: ifx.exemptUi,
+        money,
+        formatLocal: ifx.formatLocal,
+        rateText: `${ifx.sourceLabel} ${ifx.rateText}`
+      });
       setFileName(file.name);
       setResult(parsed);
       setView(parsed.counts.error > 0 ? 'error' : 'all');
@@ -171,9 +187,21 @@ export function ImportModal({ onClose }: { onClose: () => void }) {
                   <span className="text-label-lg text-on-surface">¿Primera vez? Usa la plantilla</span>
                   <span className="text-body-sm text-on-surface-variant">
                     Solo <b>nombre</b> y <b>precio</b> son obligatorios. Si falta el SKU lo generamos; el proveedor se vincula por nombre. Los SKU que ya existen se omiten.
+                    {ifx.dual && (
+                      <>
+                        {' '}
+                        Los precios van en <b>$</b>; si solo tienes el precio en bolívares, usa <b>precio_bs</b> y lo convertimos con la tasa actual.
+                      </>
+                    )}
+                    {ifx.exemptUi && (
+                      <>
+                        {' '}
+                        En <b>exento</b> escribe <b>si</b> o <b>no</b> (también 1/0, x).
+                      </>
+                    )}
                   </span>
                   <div className="flex flex-wrap gap-1">
-                    {CSV_HEADERS.map((h) => (
+                    {csvColumns(csvOptions).map((h) => (
                       <code key={h} className="rounded bg-surface-container px-1.5 py-0.5 text-[11px] font-semibold text-on-surface-variant">
                         {h}
                       </code>
@@ -181,7 +209,7 @@ export function ImportModal({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
               </div>
-              <Button variant="secondary" size="sm" icon={Download} onClick={downloadImportTemplate} className="self-start">
+              <Button variant="secondary" size="sm" icon={Download} onClick={() => downloadImportTemplate(csvOptions)} className="self-start">
                 Descargar plantilla
               </Button>
             </div>
@@ -196,7 +224,7 @@ export function ImportModal({ onClose }: { onClose: () => void }) {
                   ? 'El archivo está vacío.'
                   : `Faltan columnas obligatorias: ${result.missing.join(', ')}. Revisa los encabezados o descarga la plantilla.`}
               </span>
-              <Button variant="secondary" size="sm" icon={Download} onClick={downloadImportTemplate} className="mt-2 self-start">
+              <Button variant="secondary" size="sm" icon={Download} onClick={() => downloadImportTemplate(csvOptions)} className="mt-2 self-start">
                 Descargar plantilla
               </Button>
             </div>
@@ -230,6 +258,20 @@ export function ImportModal({ onClose }: { onClose: () => void }) {
                 </div>
               ))}
             </div>
+
+            {result.converted > 0 && (
+              <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-body-sm text-amber-900" role="status">
+                <Calculator className="mt-px size-4 shrink-0 text-amber-600" aria-hidden />
+                <span>
+                  {result.converted === 1 ? '1 precio venía' : `${fmt(result.converted)} precios venían`} solo en bolívares y se
+                  {result.converted === 1 ? ' convirtió' : ' convirtieron'} a $ con la tasa de hoy (
+                  <b className="tnum">
+                    {ifx.sourceLabel} · {ifx.rateText}
+                  </b>
+                  ). Revisa la columna Precio antes de importar: el precio se guarda en $.
+                </span>
+              </p>
+            )}
 
             {result.counts.error > 0 && (
               <p className="flex items-start gap-2 rounded-lg bg-surface-container-low px-3 py-2 text-body-sm text-on-surface-variant">
@@ -275,14 +317,34 @@ export function ImportModal({ onClose }: { onClose: () => void }) {
                     <tr key={r.line} className={cn('border-b border-slate-100 align-top last:border-0', r.status === 'error' && 'bg-red-50/40')}>
                       <td className="px-3 py-2 text-body-sm text-on-surface-variant tnum">{r.line}</td>
                       <td className="max-w-56 px-3 py-2">
-                        <span className="block truncate text-label-md text-on-surface">{r.input.name || '—'}</span>
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate text-label-md text-on-surface">{r.input.name || '—'}</span>
+                          {r.input.taxExempt && (
+                            <Badge size="xs" tone="info">
+                              Exento
+                            </Badge>
+                          )}
+                        </span>
                         <span className="block truncate text-body-sm text-on-surface-variant tnum">
                           {r.input.sku}
                           {r.input.barcode ? ` · ${r.input.barcode}` : ''}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-body-sm text-on-surface">{r.input.category}</td>
-                      <td className="px-3 py-2 text-right text-body-sm text-on-surface tnum">{r.input.salePrice > 0 ? money(r.input.salePrice) : '—'}</td>
+                      <td className="px-3 py-2 text-right text-body-sm text-on-surface tnum">
+                        {r.input.salePrice > 0 ? (
+                          <span className="flex flex-col items-end whitespace-nowrap">
+                            <span className={cn(r.fromLocal !== undefined && 'font-semibold text-amber-800')}>{money(r.input.salePrice)}</span>
+                            {r.fromLocal !== undefined ? (
+                              <span className="text-[11px] leading-4 text-on-surface-variant">desde {ifx.formatLocal(r.fromLocal)}</span>
+                            ) : (
+                              <LocalLine usd={r.input.salePrice} local={ifx.local} />
+                            )}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-right text-body-sm text-on-surface tnum">
                         {fmt(r.input.stock)} <span className="text-on-surface-variant">{r.input.unit}</span>
                       </td>

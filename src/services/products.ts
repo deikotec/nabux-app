@@ -23,7 +23,8 @@ function cleanInput(input: ProductInput) {
     supplierName: input.supplierName || null,
     imageUrl: input.imageUrl ?? null,
     imagePath: input.imagePath ?? null,
-    active: input.active !== false
+    active: input.active !== false,
+    taxExempt: !!input.taxExempt
   };
   return { ...data, searchText: buildSearchText(data) };
 }
@@ -158,6 +159,45 @@ export async function adjustStock(bid: string, actor: Actor, product: Product, i
 /** Ajusta el stock al valor contado físicamente. */
 export function setStockCount(bid: string, actor: Actor, product: Product, counted: number, reason = 'Conteo físico') {
   return adjustStock(bid, actor, product, { delta: counted - (Number(product.stock) || 0), type: 'adjust', reason });
+}
+
+export interface BulkPriceInput {
+  /** Porcentaje a aplicar (ej. 10 = +10 %, -5 = -5 %). */
+  pct: number;
+  /** Qué precio ajustar. */
+  field: 'salePrice' | 'costPrice' | 'both';
+  /** Redondeo del precio resultante (0.01, 0.05, 0.1, 0.5, 1). */
+  rounding?: number;
+}
+
+/**
+ * Ajuste masivo de precios (ej. por inflación o cambio de proveedor). Escribe en lotes de 400
+ * y deja un registro en la bitácora.
+ */
+export async function bulkAdjustPrices(bid: string, actor: Actor, products: Product[], input: BulkPriceInput) {
+  const factor = 1 + (Number(input.pct) || 0) / 100;
+  if (factor <= 0 || !products.length) return 0;
+  const step = input.rounding && input.rounding > 0 ? input.rounding : 0.01;
+  const round = (n: number) => round2(Math.max(0, Math.round((n * factor) / step) * step));
+  const batches = [];
+  for (let i = 0; i < products.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const p of products.slice(i, i + 400)) {
+      const patch: Record<string, unknown> = { updatedAt: serverTimestamp() };
+      if (input.field === 'salePrice' || input.field === 'both') patch.salePrice = round(Number(p.salePrice) || 0);
+      if (input.field === 'costPrice' || input.field === 'both') patch.costPrice = round(Number(p.costPrice) || 0);
+      batch.update(refs.product(bid, p.id), patch);
+    }
+    batches.push(batch);
+  }
+  // Todos los lotes se envían a la vez: sin conexión quedan en cola completos.
+  await Promise.all(batches.map((b) => b.commit()));
+  const what = input.field === 'both' ? 'precio y costo' : input.field === 'salePrice' ? 'precio de venta' : 'costo';
+  logActivity(bid, actor, {
+    type: 'product_update',
+    message: `Ajustó el ${what} de ${products.length} productos en ${input.pct > 0 ? '+' : ''}${input.pct}%`
+  });
+  return products.length;
 }
 
 /** Importación masiva (CSV). Escribe en lotes de 200 productos (en paralelo). */

@@ -1,10 +1,10 @@
-import { ArrowLeftRight, CalendarDays, CalendarRange, ChevronDown, FileSpreadsheet, Package, Share, Wallet } from 'lucide-react';
+import { ArrowLeftRight, CalendarDays, CalendarRange, ChartLine, ChevronDown, Coins, FileSpreadsheet, Package, Share, TriangleAlert, Wallet } from 'lucide-react';
 import { Button, Input, MenuItem, PageHeader, Popover, Segmented, StatusDot, type TabOption } from '@/components/ui';
 import { hhmm } from '../format';
 import { cn } from '@/lib/utils';
 
 export type ReportPreset = 'today' | '7d' | 'month' | '30d' | 'custom';
-export type ExportKind = 'sales' | 'products' | 'cash' | 'daily';
+export type ExportKind = 'sales' | 'products' | 'payments' | 'cash' | 'daily' | 'rates';
 
 export interface CustomRangeInput {
   from: string;
@@ -19,12 +19,21 @@ const PRESET_OPTIONS: TabOption<ReportPreset>[] = [
   { value: 'custom', label: 'Rango', icon: CalendarRange }
 ];
 
-const EXPORTS: { kind: ExportKind; label: string; icon: typeof Package }[] = [
+const EXPORTS: { kind: ExportKind; label: string; icon: typeof Package; dualOnly?: boolean }[] = [
   { kind: 'sales', label: 'Ventas detalladas', icon: FileSpreadsheet },
   { kind: 'products', label: 'Rendimiento por producto', icon: Package },
+  { kind: 'payments', label: 'Formas de pago', icon: Coins },
   { kind: 'cash', label: 'Cortes de caja', icon: Wallet },
-  { kind: 'daily', label: 'Resumen por día', icon: CalendarDays }
+  { kind: 'daily', label: 'Resumen por día', icon: CalendarDays },
+  { kind: 'rates', label: 'Historial de tasas', icon: ChartLine, dualOnly: true }
 ];
+
+/** Tasa vigente que se muestra en el encabezado (solo modo bimonetario). */
+export interface HeaderRate {
+  /** "BCV (oficial) · 41,00 Bs/$", o null si no hay tasa cargada. */
+  text: string | null;
+  stale: boolean;
+}
 
 export function ReportsHeader({
   preset,
@@ -36,7 +45,8 @@ export function ReportsHeader({
   onCompareChange,
   now,
   rangeLabel,
-  onExport
+  onExport,
+  rate
 }: {
   preset: ReportPreset;
   onPresetChange: (p: ReportPreset) => void;
@@ -49,6 +59,8 @@ export function ReportsHeader({
   now: Date;
   rangeLabel: string;
   onExport: (kind: ExportKind) => void;
+  /** Solo en modo bimonetario (también habilita la exportación del historial de tasas). */
+  rate?: HeaderRate | null;
 }) {
   return (
     <PageHeader
@@ -59,6 +71,27 @@ export function ReportsHeader({
             <StatusDot pulse />
             Corte en tiempo real • <span className="tnum">{hhmm(now)}</span> hrs
           </span>
+          {rate &&
+            (rate.text ? (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-label-sm tnum',
+                  rate.stale ? 'bg-amber-50 text-amber-800' : 'bg-surface-container text-on-surface-variant'
+                )}
+                title={
+                  rate.stale
+                    ? 'La tasa BCV no es de hoy: actualízala para cobrar al día. Las ventas pasadas conservan su propia tasa.'
+                    : 'Tasa que usa hoy el punto de venta. Las ventas pasadas conservan la tasa con que se cobraron.'
+                }
+              >
+                {rate.stale && <TriangleAlert className="size-3" />}
+                {rate.text}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-label-sm text-amber-800">
+                <TriangleAlert className="size-3" /> Sin tasa de cambio cargada
+              </span>
+            ))}
         </span>
       }
       title="Reportes & Analíticas de Negocio"
@@ -134,7 +167,7 @@ export function ReportsHeader({
               {(close) => (
                 <div className="flex flex-col">
                   <span className="px-3 pt-1.5 pb-1 text-label-sm tracking-wider text-slate-500 uppercase">Descargar en CSV</span>
-                  {EXPORTS.map((x) => (
+                  {EXPORTS.filter((x) => !x.dualOnly || rate).map((x) => (
                     <MenuItem
                       key={x.kind}
                       icon={x.icon}

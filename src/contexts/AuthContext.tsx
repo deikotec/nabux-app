@@ -55,18 +55,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
+    // Lista de negocios confirmada por el servidor. Un negocio recién creado (o una invitación recién
+    // aceptada) aparece primero como escritura local pendiente; si la app lo abriera en ese momento,
+    // Firestore aún no reconocería la membresía y respondería "sin permiso".
+    let confirmedIds: string[] | null = null;
     return onSnapshot(
       refs.user(user.uid),
+      { includeMetadataChanges: true },
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as Partial<UserProfile>;
-          setProfile({
-            ...data,
-            uid: snap.id,
-            email: data.email || (user.email ?? '').toLowerCase(),
-            displayName: data.displayName || user.displayName || (user.email ?? '').split('@')[0],
-            businessIds: data.businessIds ?? []
-          } as UserProfile);
+          const ids = data.businessIds ?? [];
+          if (!snap.metadata.hasPendingWrites || confirmedIds === null) confirmedIds = ids;
+          // Mientras haya escrituras pendientes solo se aceptan bajas, no altas sin confirmar.
+          const businessIds = snap.metadata.hasPendingWrites ? confirmedIds.filter((id) => ids.includes(id)) : ids;
+          setProfile((prev) => {
+            const next = {
+              ...data,
+              uid: snap.id,
+              email: data.email || (user.email ?? '').toLowerCase(),
+              displayName: data.displayName || user.displayName || (user.email ?? '').split('@')[0],
+              businessIds
+            } as UserProfile;
+            // Evita renders si solo cambió la metadata y los negocios siguen iguales.
+            if (prev && JSON.stringify(prev) === JSON.stringify(next)) return prev;
+            return next;
+          });
         } else setProfile(null);
         // Listo cuando hay documento, o cuando el servidor confirma que aún no existe (usuario nuevo).
         if (snap.exists() || !snap.metadata.fromCache) setProfileReady(true);

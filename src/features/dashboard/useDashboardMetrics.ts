@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSalesRange } from '@/hooks/data';
 import { dayKey, eachDay, previousRange, rangeFromPreset, sameDay, WEEKDAY_SHORT, type DateRange } from '@/lib/dates';
 import { formatDate, toDate } from '@/lib/format';
+import { round2 } from '@/lib/utils';
 import type { Sale } from '@/types';
+import { saleLocalTotal } from '@/features/sales/saleUtils';
 
 export type DashPreset = 'today' | 'week' | 'month';
 
@@ -41,6 +43,10 @@ export interface DashboardMetrics {
   total: number;
   count: number;
   avg: number;
+  /** Total en moneda local: suma de cada venta a SU tasa (solo las que la tienen). */
+  totalLocal: number;
+  /** Ventas completadas del período sin tasa registrada (no suman en `totalLocal`). */
+  localMissing: number;
   /** Variación % contra el mismo tramo del período anterior (null si no hay base). */
   delta: number | null;
   /** Ventas por día de los últimos 7 días. */
@@ -103,6 +109,13 @@ export function useDashboardMetrics(preset: DashPreset): DashboardMetrics {
 
     const total = current.reduce((a, s) => a + (Number(s.total) || 0), 0);
     const count = current.length;
+    let totalLocal = 0;
+    let localMissing = 0;
+    for (const s of current) {
+      const local = saleLocalTotal(s);
+      if (local === null) localMissing += 1;
+      else totalLocal += local;
+    }
 
     // Comparación justa: mismo tiempo transcurrido dentro del período anterior.
     const elapsed = Math.min(now, to) - from;
@@ -203,6 +216,8 @@ export function useDashboardMetrics(preset: DashPreset): DashboardMetrics {
       total,
       count,
       avg: count ? total / count : 0,
+      totalLocal: round2(totalLocal),
+      localMissing,
       delta,
       spark,
       series,

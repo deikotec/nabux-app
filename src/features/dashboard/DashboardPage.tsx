@@ -3,6 +3,7 @@ import { Download, TriangleAlert } from 'lucide-react';
 import { ROLE_LABELS } from '@/config/app';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCatalog } from '@/contexts/CatalogContext';
+import { useFx } from '@/contexts/FxContext';
 import { useRecentSales } from '@/hooks/data';
 import { dayKey } from '@/lib/dates';
 import { firstName, formatNumber, greeting } from '@/lib/format';
@@ -11,10 +12,12 @@ import { Button, PageHeader, Segmented, useToast, type TabOption } from '@/compo
 import type { Sale } from '@/types';
 import { SaleDetailModal } from '@/features/sales/SaleDetailModal';
 import { exportSalesCsv } from '@/features/sales/saleUtils';
+import { FxRateCard } from './FxRateCard';
 import { GettingStartedCard } from './GettingStartedCard';
 import { KpiGrid } from './KpiGrid';
 import { LowStockCard } from './LowStockCard';
 import { QuickActionsCard } from './QuickActionsCard';
+import { RateEditorModal } from './RateEditorModal';
 import { RecentSalesCard } from './RecentSalesCard';
 import { RevenueCard } from './RevenueCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
@@ -28,9 +31,11 @@ const PRESET_OPTIONS: TabOption<DashPreset>[] = (Object.keys(PRESET_COPY) as Das
 export default function DashboardPage() {
   const { business, member, role, can, money, moneyCompact } = useActiveBusiness();
   const { products, lowStock, outOfStock, loading: catalogLoading } = useCatalog();
+  const fx = useFx();
   const toast = useToast();
   const [preset, setPreset] = useState<DashPreset>('today');
   const [selected, setSelected] = useState<Sale | null>(null);
+  const [rateEditor, setRateEditor] = useState(false);
 
   // Sin permiso de reportes los hooks ya devuelven solo las ventas del usuario.
   const mine = !can('reports');
@@ -50,7 +55,9 @@ export default function DashboardPage() {
     };
   }, [products, lowStock.length, outOfStock.length, catalogLoading]);
 
-  const showOnboarding = !catalogLoading && !recent.loading && !recent.error && (products.length === 0 || recent.data.length === 0);
+  // En modo bimonetario se espera a conocer la tasa para no marcar ese paso como pendiente por un instante.
+  const showOnboarding =
+    !catalogLoading && !recent.loading && !recent.error && !(fx.enabled && fx.loading) && (products.length === 0 || recent.data.length === 0);
 
   // Venta abierta tomada de las listas en tiempo real (refleja anulaciones al instante).
   const selectedSale = selected
@@ -62,8 +69,26 @@ export default function DashboardPage() {
       toast.info(`No hay ventas ${copy.period} para descargar.`);
       return;
     }
-    exportSalesCsv(`resumen-ventas-${copy.file}-${dayKey(new Date())}.csv`, metrics.periodSales, !mine);
+    exportSalesCsv(`resumen-ventas-${copy.file}-${dayKey(new Date())}.csv`, metrics.periodSales, {
+      includeProfit: !mine,
+      dual: fx.enabled,
+      methods: fx.allMethods,
+      baseCurrency: fx.baseCurrency,
+      localCurrency: fx.localCurrency
+    });
     toast.success(`Resumen descargado (${formatNumber(metrics.periodSales.length)} ventas).`);
+  };
+
+  // Paso "Configura la tasa de cambio": primero intenta traerla de internet; si no se puede, se carga a mano.
+  const setupRates = async () => {
+    try {
+      const r = await fx.refreshFromInternet();
+      if (r.bcv || r.parallel) toast.success('Tasa del día cargada desde internet.');
+      else setRateEditor(true);
+    } catch (e) {
+      toast.error(`${errorMessage(e)} Cárgala a mano.`);
+      setRateEditor(true);
+    }
   };
 
   const loadError = metrics.error ?? recent.error;
@@ -89,7 +114,9 @@ export default function DashboardPage() {
       />
 
       <div className="flex flex-col gap-6">
-        {showOnboarding && <GettingStartedCard productCount={products.length} recentSales={recent.data} />}
+        {showOnboarding && (
+          <GettingStartedCard productCount={products.length} recentSales={recent.data} onSetupRates={setupRates} />
+        )}
 
         {loadError && (
           <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-body-md text-red-900">
@@ -99,6 +126,8 @@ export default function DashboardPage() {
             </p>
           </div>
         )}
+
+        {fx.enabled && <FxRateCard onEdit={() => setRateEditor(true)} />}
 
         <KpiGrid preset={preset} metrics={metrics} mine={mine} catalog={catalog} money={money} />
 
@@ -117,6 +146,7 @@ export default function DashboardPage() {
       </div>
 
       <SaleDetailModal sale={selectedSale} onClose={() => setSelected(null)} />
+      {fx.enabled && fx.canEditRates && <RateEditorModal open={rateEditor} onClose={() => setRateEditor(false)} />}
     </>
   );
 }

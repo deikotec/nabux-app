@@ -2,20 +2,28 @@ import { doc, increment, runTransaction, serverTimestamp, Timestamp, writeBatch 
 import { db } from '@/lib/firebase';
 import { computeTotals } from '@/lib/totals';
 import { round2 } from '@/lib/utils';
-import { PAYMENT_LABELS } from '@/config/app';
-import type { Business, PaymentMethod, Product, Sale, SaleItem } from '@/types';
+import { applyPayments, baseToMethod, fxSettingsOf, methodCurrency, paymentMethodsOf, type PaymentDraft } from '@/lib/payments';
+import type { Business, PaymentMethod, Product, RateSource, Sale, SaleItem } from '@/types';
 import { logActivityIn } from './activity';
 import { refs, type Actor } from './refs';
 
 export class CheckoutError extends Error {}
 
 export interface CheckoutInput {
-  business: Pick<Business, 'id' | 'taxRate' | 'pricesIncludeTax' | 'settings'>;
+  business: Pick<Business, 'id' | 'taxRate' | 'pricesIncludeTax' | 'settings' | 'currency' | 'fx' | 'paymentMethods'>;
   actor: Actor;
   items: SaleItem[];
-  /** Descuento en monto. */
+  /** Descuento en monto (moneda base). */
   discount: number;
-  paymentMethod: PaymentMethod;
+  /** Pagos (uno o varios = pago mixto), cada uno en la moneda de su método. */
+  payments?: PaymentDraft[];
+  /** Tasa usada (Bs por $) y su fuente; obligatoria si hay pagos en moneda local. */
+  rate?: number | null;
+  rateSource?: RateSource | null;
+  /** Método con el que se entrega el vuelto (si el cliente pagó de más). */
+  changeMethodId?: string | null;
+  /** Formato anterior (un solo método): se convierte en un pago. */
+  paymentMethod?: PaymentMethod;
   cashReceived?: number | null;
   customerName?: string;
   sessionId?: string | null;
@@ -60,11 +68,44 @@ export async function checkout(input: CheckoutInput): Promise<Sale> {
     taxRate: business.taxRate,
     pricesIncludeTax: business.pricesIncludeTax
   });
-  const cashReceived = input.paymentMethod === 'cash' ? round2(Number(input.cashReceived) || totals.total) : null;
-  if (cashReceived !== null && cashReceived < totals.total) {
-    throw new CheckoutError('El efectivo recibido es menor al total a cobrar.');
+  // ---- Pagos (mixtos, multimoneda, IGTF y vuelto) ----
+  const fx = fxSettingsOf(business);
+  const methods = paymentMethodsOf(business);
+  const rate = fx.enabled && input.rate && input.rate > 0 ? input.rate : null;
+  const drafts: PaymentDraft[] = input.payments?.length
+    ? input.payments
+    : [{ methodId: input.paymentMethod ?? methods[0]?.id ?? 'cash', amount: Number(input.cashReceived) || totals.total }];
+
+  for (const d of drafts) {
+    const m = methods.find((x) => x.id === d.methodId);
+    if (!m) throw new CheckoutError('Forma de pago no válida.');
+    if (m.currency === 'local' && !rate) throw new CheckoutError('Configura la tasa de cambio para cobrar en bolívares.');
+    if (m.requiresReference && !d.reference?.trim()) throw new CheckoutError(`Falta el número de referencia de ${m.label}.`);
   }
-  const change = cashReceived !== null ? round2(cashReceived - totals.total) : null;
+
+  const paid = applyPayments({ total: totals.total, drafts, methods, business, rate });
+  if (!paid.lines.length) throw new CheckoutError('Registra al menos un pago.');
+  if (paid.remaining > 0.009) throw new CheckoutError(`Falta cobrar ${paid.remaining.toFixed(2)} ${business.currency}.`);
+
+  let changeMethodId: string | null = null;
+  let changeCurrency: string | null = null;
+  let changeAmount: number | null = null;
+  if (paid.excess > 0.009) {
+    const cm =
+      methods.find((m) => m.id === input.changeMethodId && m.allowsChange) ??
+      // Por defecto, el vuelto sale en la moneda del último pago en efectivo.
+      methods.find((m) => m.id === [...paid.lines].reverse().find((l) => l.kind === 'cash')?.methodId) ??
+      methods.find((m) => m.allowsChange && m.kind === 'cash');
+    if (!cm) throw new CheckoutError('El monto recibido excede el total y no hay una forma de dar vuelto.');
+    if (cm.currency === 'local' && !rate) throw new CheckoutError('Configura la tasa de cambio para dar vuelto en bolívares.');
+    changeMethodId = cm.id;
+    changeCurrency = methodCurrency(cm, business);
+    changeAmount = baseToMethod(paid.excessRaw, cm, rate);
+  }
+  const primary = paid.lines.length > 1 ? 'mixed' : paid.lines[0].methodId;
+  const cashLine = paid.lines.length === 1 && paid.lines[0].kind === 'cash' ? paid.lines[0] : null;
+  const methodsLabel = paid.lines.length > 1 ? `Mixto: ${paid.lines.map((l) => l.label).join(' + ')}` : paid.lines[0].label;
+
   const qtyByProduct = aggregateQty(items);
   const productIds = Array.from(qtyByProduct.keys());
   const allowNegative = !!business.settings?.allowNegativeStock;
@@ -79,13 +120,26 @@ export async function checkout(input: CheckoutInput): Promise<Sale> {
       qty: i.qty,
       unitPrice: round2(i.unitPrice),
       unitCost: round2(i.unitCost),
-      total: round2(i.unitPrice * i.qty)
+      total: round2(i.unitPrice * i.qty),
+      ...(i.taxExempt ? { taxExempt: true } : {})
     })),
     productIds,
     ...totals,
-    paymentMethod: input.paymentMethod,
-    cashReceived,
-    change,
+    paymentMethod: primary,
+    payments: paid.lines,
+    currency: business.currency,
+    localCurrency: fx.enabled ? fx.localCurrency : null,
+    rate,
+    rateSource: rate ? (input.rateSource ?? fx.rateSource) : null,
+    totalLocal: rate ? round2(totals.total * rate) : null,
+    igtf: paid.igtf,
+    igtfRate: paid.igtf > 0 ? fx.igtfRate : null,
+    amountDue: paid.amountDue,
+    changeMethodId,
+    changeCurrency,
+    changeAmount,
+    cashReceived: cashLine && cashLine.currency === business.currency ? cashLine.amount : null,
+    change: paid.excess > 0.009 ? paid.excess : 0,
     customerName: input.customerName?.trim() || 'Cliente mostrador',
     cashierId: actor.uid,
     cashierName: actor.name,
@@ -93,8 +147,7 @@ export async function checkout(input: CheckoutInput): Promise<Sale> {
     status: 'completed' as const
   };
 
-  const activityMessage = (folio: string) =>
-    `Venta ${folio} · ${totals.itemCount} art. · ${PAYMENT_LABELS[input.paymentMethod]}`;
+  const activityMessage = (folio: string) => `Venta ${folio} · ${totals.itemCount} art. · ${methodsLabel}`;
 
   const runOnline = async () =>
     runTransaction(db, async (tx) => {

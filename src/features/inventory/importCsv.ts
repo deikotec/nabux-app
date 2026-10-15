@@ -1,10 +1,10 @@
 import { UNITS } from '@/config/app';
 import { generateSku, normalize, parseCsv, round2 } from '@/lib/utils';
 import type { InventorySettings, Product, ProductInput, Supplier } from '@/types';
-import { CSV_HEADERS, type CsvField } from './helpers';
+import { csvColumns, parseYesNo, type ImportField } from './helpers';
 
 /** Encabezados aceptados para cada columna (se comparan sin acentos, espacios ni mayúsculas). */
-const FIELD_ALIASES: Record<CsvField, string[]> = {
+const FIELD_ALIASES: Record<ImportField, string[]> = {
   nombre: ['nombre', 'name', 'producto', 'nombre del producto', 'descripcion', 'articulo'],
   sku: ['sku', 'clave', 'codigo interno', 'referencia'],
   codigo_barras: ['codigo_barras', 'codigo de barras', 'barcode', 'ean', 'ean13', 'upc', 'codigo'],
@@ -16,10 +16,10 @@ const FIELD_ALIASES: Record<CsvField, string[]> = {
   stock: ['stock', 'existencia', 'existencias', 'cantidad', 'inventario', 'stock inicial', 'stock actual'],
   stock_minimo: ['stock_minimo', 'stock minimo', 'minimo', 'min', 'stock min', 'stock_min'],
   ubicacion: ['ubicacion', 'location', 'pasillo', 'ubicacion en bodega'],
-  proveedor: ['proveedor', 'supplier', 'distribuidor']
+  proveedor: ['proveedor', 'supplier', 'distribuidor'],
+  precio_bs: ['precio_bs', 'precio bs', 'precio en bs', 'precio bolivares', 'precio en bolivares', 'precio ves', 'pvp bs', 'precio bs.'],
+  exento: ['exento', 'exento iva', 'exento de iva', 'iva exento', 'exempt', 'tax exempt']
 };
-
-const REQUIRED: CsvField[] = ['nombre', 'precio'];
 
 const keyOf = (h: string) => normalize(h).replace(/[^a-z0-9]/g, '');
 
@@ -88,6 +88,14 @@ export function parseNumber(raw: string | undefined): number | null {
   return Number.isFinite(n) ? n : Number.NaN;
 }
 
+/** Como `parseNumber`, pero quita antes el símbolo de bolívares ("Bs. 1.234,56", "1.234,56 Bs", "VES 50"), cuyo punto confundiría al separador decimal. */
+export function parseLocalNumber(raw: string | undefined): number | null {
+  let s = (raw ?? '').replace(/^\s*(bs\.?\s*s?\.?|ves|bsf|bsd)\s*/i, '').replace(/\s*(bs\.?\s*s?\.?|ves|bsf|bsd)\s*$/i, '').trim();
+  // En bolívares "1.234" o "1.234.567" son miles (formato venezolano), no decimales.
+  if (!s.includes(',') && /^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  return parseNumber(s);
+}
+
 export type ImportStatus = 'valid' | 'skip' | 'error';
 
 export interface ImportRow {
@@ -99,16 +107,20 @@ export interface ImportRow {
   problems: string[];
   /** Avisos informativos (ej. SKU generado). */
   notes: string[];
+  /** Precio en Bs del archivo, si el precio en $ se calculó a partir de él. */
+  fromLocal?: number;
 }
 
 export interface ImportParseResult {
   rows: ImportRow[];
   /** Columnas obligatorias que no se encontraron. */
-  missing: CsvField[];
+  missing: string[];
   /** Encabezados del archivo que no se reconocieron (se ignoran). */
   ignored: string[];
-  detected: CsvField[];
+  detected: ImportField[];
   counts: Record<ImportStatus, number>;
+  /** Filas cuyo precio en $ se calculó desde `precio_bs` con la tasa actual. */
+  converted: number;
 }
 
 interface ParseContext {
@@ -116,26 +128,43 @@ interface ParseContext {
   suppliers: Supplier[];
   categories: string[];
   settings: InventorySettings;
+  /** Modo bimonetario: acepta `precio_bs`. */
+  dual?: boolean;
+  /** Tasa vigente (Bs por $) para convertir `precio_bs`; null si no hay. */
+  rate?: number | null;
+  /** Acepta la columna `exento`. */
+  exempt?: boolean;
+  /** Formateadores para los avisos de conversión. */
+  money?: (usd: number) => string;
+  formatLocal?: (bs: number) => string;
+  /** "36,52 Bs/$". */
+  rateText?: string;
 }
 
 export function buildImportRows(text: string, ctx: ParseContext): ImportParseResult {
   const table = parseCsv(text);
   const counts: Record<ImportStatus, number> = { valid: 0, skip: 0, error: 0 };
-  if (!table.length) return { rows: [], missing: [...REQUIRED], ignored: [], detected: [], counts };
+  const fields = csvColumns({ dual: ctx.dual, exempt: ctx.exempt });
+  const priceLabel = ctx.dual ? 'precio (o precio_bs)' : 'precio';
+  if (!table.length) return { rows: [], missing: ['nombre', priceLabel], ignored: [], detected: [], counts, converted: 0 };
 
-  // 1. Mapeo tolerante de encabezados.
+  // 1. Mapeo tolerante de encabezados (solo las columnas que aplican a este negocio).
   const header = table[0];
-  const index: Partial<Record<CsvField, number>> = {};
+  const index: Partial<Record<ImportField, number>> = {};
   const ignored: string[] = [];
   header.forEach((h, i) => {
     const k = keyOf(h);
-    const field = CSV_HEADERS.find((f) => index[f] === undefined && FIELD_ALIASES[f].some((a) => keyOf(a) === k));
+    const field = fields.find((f) => index[f] === undefined && FIELD_ALIASES[f].some((a) => keyOf(a) === k));
     if (field) index[field] = i;
     else if (h.trim()) ignored.push(h.trim());
   });
-  const missing = REQUIRED.filter((f) => index[f] === undefined);
-  const detected = CSV_HEADERS.filter((f) => index[f] !== undefined);
-  if (missing.length) return { rows: [], missing, ignored, detected, counts };
+  const missing: string[] = [];
+  if (index.nombre === undefined) missing.push('nombre');
+  if (index.precio === undefined && index.precio_bs === undefined) missing.push(priceLabel);
+  const detected = fields.filter((f) => index[f] !== undefined);
+  if (missing.length) return { rows: [], missing, ignored, detected, counts, converted: 0 };
+  const money = ctx.money ?? ((n: number) => n.toFixed(2));
+  const formatLocal = ctx.formatLocal ?? ((n: number) => `Bs. ${n.toFixed(2)}`);
 
   // 2. Índices del catálogo actual.
   const existingSkus = new Map<string, Product>();
@@ -151,7 +180,7 @@ export function buildImportRows(text: string, ctx: ParseContext): ImportParseRes
 
   const rows: ImportRow[] = [];
   table.slice(1).forEach((cells, i) => {
-    const get = (f: CsvField) => {
+    const get = (f: ImportField) => {
       const idx = index[f];
       return idx === undefined ? '' : (cells[idx] ?? '').trim();
     };
@@ -166,9 +195,27 @@ export function buildImportRows(text: string, ctx: ParseContext): ImportParseRes
     const category = rawCategory ? (categoriesByKey.get(normalize(rawCategory)) ?? rawCategory) : 'General';
     if (!rawCategory) notes.push('Sin categoría: se usará "General"');
 
-    const price = parseNumber(get('precio'));
-    if (price === null) problems.push('Falta el precio de venta');
+    // Precio: en $ (moneda base). Si solo viene en Bs, se convierte con la tasa actual.
+    let price = parseNumber(get('precio'));
+    let fromLocal: number | undefined;
+    if (price === null && index.precio_bs !== undefined) {
+      const bs = parseLocalNumber(get('precio_bs'));
+      if (bs === null) problems.push('Falta el precio de venta');
+      else if (Number.isNaN(bs) || bs <= 0) problems.push(`Precio en Bs inválido ("${get('precio_bs')}")`);
+      else if (!ctx.rate) problems.push('Sin tasa de cambio: no se puede convertir el precio en Bs a $');
+      else {
+        price = round2(bs / ctx.rate);
+        if (price <= 0) problems.push(`Precio en Bs demasiado bajo ("${get('precio_bs')}")`);
+        else {
+          fromLocal = bs;
+          notes.push(`Precio convertido: ${formatLocal(bs)} → ${money(price)} (tasa ${ctx.rateText ?? ctx.rate})`);
+        }
+      }
+    } else if (price === null) problems.push('Falta el precio de venta');
     else if (Number.isNaN(price) || price <= 0) problems.push(`Precio inválido ("${get('precio')}")`);
+
+    const exempt = parseYesNo(get('exento'));
+    if (exempt === undefined) problems.push(`Valor de "exento" inválido ("${get('exento')}"): usa si o no`);
 
     const cost = parseNumber(get('costo'));
     if (cost !== null && (Number.isNaN(cost) || cost < 0)) problems.push(`Costo inválido ("${get('costo')}")`);
@@ -232,13 +279,15 @@ export function buildImportRows(text: string, ctx: ParseContext): ImportParseRes
       location: get('ubicacion'),
       supplierId: supplier?.id ?? null,
       supplierName: supplier?.name ?? (rawSupplier || null),
-      active: true
+      active: true,
+      taxExempt: exempt === true
     };
     counts[status]++;
-    rows.push({ line: i + 2, input, status, problems, notes });
+    rows.push({ line: i + 2, input, status, problems, notes, fromLocal });
   });
 
-  return { rows, missing, ignored, detected, counts };
+  const converted = rows.filter((r) => r.status === 'valid' && r.fromLocal !== undefined).length;
+  return { rows, missing, ignored, detected, counts, converted };
 }
 
 /** Lee un archivo de texto probando UTF-8 y, si hay caracteres inválidos, Windows-1252 (CSV de Excel). */

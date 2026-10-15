@@ -1,6 +1,6 @@
 import { formatNumber } from '@/lib/format';
 import { cn, stockStatus } from '@/lib/utils';
-import { MarginChip, ProductIdentity, RowActions, StockLevel } from './ProductParts';
+import { MarginChip, PriceStack, ProductIdentity, RowActions, StockLevel } from './ProductParts';
 import type { ProductListProps } from './ProductTable';
 
 export const cardDomId = (id: string) => `inv-card-${id}`;
@@ -54,9 +54,8 @@ export function ProductCardList({ products, ctx, handlers, selected, onToggle, o
 
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-label-lg text-on-surface tnum">{money(p.salePrice)}</span>
-                  <span className="truncate text-body-sm text-on-surface-variant tnum">Costo: {money(p.costPrice)}</span>
-                  <MarginChip product={p} minMarginPct={ctx.minMarginPct} className="mt-1 self-start" />
+                  <PriceStack product={p} money={money} local={ctx.local} align="start" className="gap-0.5" />
+                  <MarginChip product={p} minMarginPct={ctx.minMarginPct} tax={ctx.tax} className="mt-1 self-start" />
                 </div>
                 <div className="flex min-w-0 flex-col gap-1">
                   <StockLevel product={p} locale={ctx.locale} />

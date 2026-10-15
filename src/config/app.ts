@@ -1,4 +1,4 @@
-import type { InventorySettings, PaymentMethod, Permission, Role } from '@/types';
+import type { FxSettings, InventorySettings, PaymentKind, PaymentMethod, PaymentMethodConfig, Permission, RateSource, Role } from '@/types';
 
 export const APP_NAME = 'Nabux';
 export const APP_TAGLINE = 'Inventario y punto de venta en la nube';
@@ -62,6 +62,53 @@ export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   transfer: 'Transferencia / QR'
 };
 
+/** Formas de pago para negocios de una sola moneda (ids compatibles con las ventas antiguas). */
+export const DEFAULT_PAYMENT_METHODS: PaymentMethodConfig[] = [
+  { id: 'cash', label: 'Efectivo', currency: 'base', kind: 'cash', igtf: false, requiresReference: false, allowsChange: true, active: true },
+  { id: 'card', label: 'Tarjeta', currency: 'base', kind: 'card', igtf: false, requiresReference: false, allowsChange: false, active: true },
+  { id: 'transfer', label: 'Transferencia / QR', currency: 'base', kind: 'transfer', igtf: false, requiresReference: false, allowsChange: false, active: true }
+];
+
+/** Formas de pago habituales en Venezuela (base = USD, local = Bs). */
+export const VE_PAYMENT_METHODS: PaymentMethodConfig[] = [
+  { id: 'cash_usd', label: 'Efectivo $', currency: 'base', kind: 'cash', igtf: true, requiresReference: false, allowsChange: true, active: true },
+  { id: 'cash_ves', label: 'Efectivo Bs', currency: 'local', kind: 'cash', igtf: false, requiresReference: false, allowsChange: true, active: true },
+  { id: 'pago_movil', label: 'Pago móvil', currency: 'local', kind: 'mobile', igtf: false, requiresReference: true, allowsChange: true, active: true },
+  { id: 'punto', label: 'Punto de venta', currency: 'local', kind: 'card', igtf: false, requiresReference: false, allowsChange: false, active: true },
+  { id: 'transfer_ves', label: 'Transferencia Bs', currency: 'local', kind: 'transfer', igtf: false, requiresReference: true, allowsChange: false, active: true },
+  { id: 'zelle', label: 'Zelle', currency: 'base', kind: 'transfer', igtf: true, requiresReference: true, allowsChange: false, active: true },
+  { id: 'usdt', label: 'Binance / USDT', currency: 'base', kind: 'crypto', igtf: true, requiresReference: true, allowsChange: false, active: true },
+  { id: 'biopago', label: 'Biopago', currency: 'local', kind: 'card', igtf: false, requiresReference: false, allowsChange: false, active: false },
+  { id: 'cashea', label: 'Cashea', currency: 'local', kind: 'credit', igtf: false, requiresReference: true, allowsChange: false, active: false }
+];
+
+export const PAYMENT_KIND_LABELS: Record<PaymentKind, string> = {
+  cash: 'Efectivo',
+  mobile: 'Pago móvil',
+  card: 'Tarjeta / punto',
+  transfer: 'Transferencia',
+  crypto: 'Cripto',
+  credit: 'Crédito / financiamiento',
+  other: 'Otro'
+};
+
+export const RATE_SOURCE_LABELS: Record<RateSource, string> = {
+  bcv: 'BCV (oficial)',
+  parallel: 'Paralelo',
+  custom: 'Tasa propia'
+};
+
+export const DEFAULT_FX_SETTINGS: FxSettings = {
+  enabled: false,
+  localCurrency: 'VES',
+  localLocale: 'es-VE',
+  rateSource: 'bcv',
+  autoUpdate: true,
+  igtfEnabled: true,
+  igtfRate: 3,
+  localRounding: 0.01
+};
+
 export const UNITS = ['Unidad', 'Pieza', 'Caja', 'Paquete', 'Kg', 'Gramo', 'Litro', 'Mililitro', 'Metro', 'Docena', 'Par', 'Servicio'];
 
 export const BUSINESS_TYPES = [
@@ -95,14 +142,37 @@ export const DEFAULT_CATEGORIES_BY_TYPE: Record<string, string[]> = {
 };
 
 export interface CurrencyOption {
+  /** Clave única de la opción (código ISO; "VES" = Venezuela bimonetario). */
   code: string;
   label: string;
   locale: string;
   taxRate: number;
   taxName: string;
+  /**
+   * Modo bimonetario: los precios se guardan en `baseCurrency` (USD) y se cobra también en `code` (Bs).
+   * Para estas opciones, business.currency = baseCurrency y business.fx.localCurrency = code.
+   */
+  baseCurrency?: string;
+  baseLocale?: string;
+  country?: string;
+}
+
+/** Moneda base real de una opción (para bimonetario es la de referencia, ej. USD). */
+export function currencyOptionBase(opt: CurrencyOption) {
+  return { currency: opt.baseCurrency ?? opt.code, locale: opt.baseLocale ?? opt.locale };
 }
 
 export const CURRENCIES: CurrencyOption[] = [
+  {
+    code: 'VES',
+    label: 'Venezuela · Dólar + Bolívar (bimonetario)',
+    locale: 'es-VE',
+    taxRate: 16,
+    taxName: 'IVA',
+    baseCurrency: 'USD',
+    baseLocale: 'es-VE',
+    country: 'VE'
+  },
   { code: 'MXN', label: 'Peso mexicano (MXN)', locale: 'es-MX', taxRate: 16, taxName: 'IVA' },
   { code: 'USD', label: 'Dólar estadounidense (USD)', locale: 'es-US', taxRate: 0, taxName: 'Impuesto' },
   { code: 'COP', label: 'Peso colombiano (COP)', locale: 'es-CO', taxRate: 19, taxName: 'IVA' },

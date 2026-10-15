@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getDoc, onSnapshot } from 'firebase/firestore';
 import { DEFAULT_INVENTORY_SETTINGS } from '@/config/app';
 import { currencySymbol, formatMoney, formatMoneyCompact, toDate } from '@/lib/format';
@@ -68,18 +68,15 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     return businessIds[0];
   }, [businessIds, selectedId, profile?.lastBusinessId]);
 
+  // Membresía del usuario en el negocio activo.
   useEffect(() => {
-    setBusiness(null);
     setMember(null);
-    setBusinessLoaded(false);
     setMemberLoaded(false);
-    setDenied(false);
     if (!user || !businessId) return;
-
-    const unsubMember = onSnapshot(
+    return onSnapshot(
       refs.member(businessId, user.uid),
       (snap) => {
-        setMember(snap.exists() ? ({ uid: snap.id, ...snap.data() } as Member) : null);
+        setMember(snap.exists() ? ({ uid: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) } as Member) : null);
         setMemberLoaded(true);
       },
       () => {
@@ -87,11 +84,27 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         setMemberLoaded(true);
       }
     );
+  }, [user, businessId]);
+
+  // Datos del negocio. Justo después de crearlo o de aceptar una invitación, el servidor puede
+  // responder "sin permiso" unos instantes antes de registrar la membresía: se reintenta antes
+  // de concluir que no hay acceso (un listener con error queda cancelado para siempre).
+  const [bizRetry, setBizRetry] = useState({ key: '', n: 0 });
+  const bizAttempt = bizRetry.key === businessId ? bizRetry.n : 0;
+
+  useEffect(() => {
+    if (bizAttempt === 0) {
+      setBusiness(null);
+      setBusinessLoaded(false);
+      setDenied(false);
+    }
+    if (!user || !businessId) return;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const unsubBiz = onSnapshot(
       refs.business(businessId),
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data() as Omit<Business, 'id'>;
+          const data = snap.data({ serverTimestamps: 'estimate' }) as Omit<Business, 'id'>;
           setBusiness({
             ...data,
             id: snap.id,
@@ -104,18 +117,23 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
             pricesIncludeTax: data.pricesIncludeTax !== false
           });
         } else setBusiness(null);
+        setDenied(false);
         setBusinessLoaded(true);
       },
       () => {
-        setDenied(true);
-        setBusinessLoaded(true);
+        if (bizAttempt < 5) {
+          retryTimer = setTimeout(() => setBizRetry({ key: businessId, n: bizAttempt + 1 }), 700 * (bizAttempt + 1));
+        } else {
+          setDenied(true);
+          setBusinessLoaded(true);
+        }
       }
     );
     return () => {
-      unsubMember();
       unsubBiz();
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, businessId]);
+  }, [user, businessId, bizAttempt]);
 
   // Resumen de todos los negocios del usuario para el selector.
   useEffect(() => {
@@ -144,11 +162,20 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   }, [businessIds]);
 
   // Registrar "última actividad" como máximo cada 5 minutos.
+  // La guarda local evita un bucle: la propia escritura dispara un nuevo snapshot del miembro.
+  const lastTouchRef = useRef<{ key: string; at: number }>({ key: '', at: 0 });
+  const memberActive = member?.status === 'active';
+  const memberLastActive = toDate(member?.lastActiveAt)?.getTime() ?? 0;
   useEffect(() => {
-    if (!user || !businessId || !member || member.status !== 'active') return;
-    const last = toDate(member.lastActiveAt)?.getTime() ?? 0;
-    if (Date.now() - last > 5 * 60 * 1000) touchMember(businessId, user.uid);
-  }, [user, businessId, member]);
+    if (!user || !businessId || !memberActive) return;
+    const key = `${businessId}:${user.uid}`;
+    const now = Date.now();
+    const FIVE_MIN = 5 * 60 * 1000;
+    const touchedRecently = lastTouchRef.current.key === key && now - lastTouchRef.current.at < FIVE_MIN;
+    if (touchedRecently || now - memberLastActive < FIVE_MIN) return;
+    lastTouchRef.current = { key, at: now };
+    touchMember(businessId, user.uid);
+  }, [user, businessId, memberActive, memberLastActive]);
 
   const switchBusiness = useCallback(
     (id: string) => {

@@ -9,6 +9,7 @@ import { errorMessage } from '@/lib/utils';
 import { logActivity } from '@/services/activity';
 import { updateBusiness } from '@/services/business';
 import { Badge, Button, Field, Input, Select, Spinner, Textarea, useConfirm, useToast } from '@/components/ui';
+import { isVenezuela, taxIdLabel } from './fxHelpers';
 import { persist, usePendingChanges, useSyncedForm } from './settingsState';
 import { SettingsCard } from './SettingsUI';
 
@@ -109,8 +110,19 @@ export function BusinessTab() {
             <Field label="Razón social" htmlFor="biz-legal" hint="Nombre fiscal, si es distinto al comercial.">
               <Input id="biz-legal" value={v.legalName} onChange={(e) => form.set('legalName', e.target.value)} maxLength={160} placeholder="Opcional" />
             </Field>
-            <Field label="RFC / NIT / RUC" htmlFor="biz-taxid" hint="Identificación fiscal que se imprime en el ticket.">
-              <Input id="biz-taxid" value={v.taxId} onChange={(e) => form.set('taxId', e.target.value)} maxLength={30} placeholder="Opcional" className="uppercase" />
+            <Field
+              label={taxIdLabel(business)}
+              htmlFor="biz-taxid"
+              hint={isVenezuela(business) ? 'Registro de Información Fiscal (ej. J-12345678-9). Se imprime en el ticket.' : 'Identificación fiscal que se imprime en el ticket.'}
+            >
+              <Input
+                id="biz-taxid"
+                value={v.taxId}
+                onChange={(e) => form.set('taxId', e.target.value)}
+                maxLength={30}
+                placeholder={isVenezuela(business) ? 'J-12345678-9' : 'Opcional'}
+                className="uppercase"
+              />
             </Field>
             <Field label="Giro del negocio" htmlFor="biz-type" className="sm:col-span-2">
               <Select id="biz-type" value={v.businessType} onChange={(e) => form.set('businessType', e.target.value)} options={typeOptions} placeholder="Selecciona un giro" />
@@ -138,7 +150,7 @@ export function BusinessTab() {
               />
             </Field>
             <Field label="Dirección" htmlFor="biz-address" className="sm:col-span-2">
-              <Textarea id="biz-address" rows={2} value={v.address} onChange={(e) => form.set('address', e.target.value)} maxLength={240} placeholder="Calle, número, colonia, ciudad" />
+              <Textarea id="biz-address" rows={2} value={v.address} onChange={(e) => form.set('address', e.target.value)} maxLength={240} placeholder={isVenezuela(business) ? 'Av. o calle, local, urbanización, ciudad' : 'Calle, número, colonia, ciudad'} />
             </Field>
           </div>
         </SettingsCard>

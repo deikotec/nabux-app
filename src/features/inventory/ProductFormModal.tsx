@@ -29,7 +29,9 @@ import { formatNumber, formatPercent } from '@/lib/format';
 import { cn, errorMessage, generateEan13, generateSku, marginPct, normalize, round2 } from '@/lib/utils';
 import { createProduct, newProductId, updateProduct, uploadProductImage } from '@/services/products';
 import type { Product, ProductInput } from '@/types';
-import { commitWrite, MARGIN_CHIP, marginTone } from './helpers';
+import { FromLocalHelper, FromLocalTrigger, RateChip } from './FxBits';
+import { ceilCents, commitWrite, grossFromNet, MARGIN_CHIP, marginTone, netPrice } from './helpers';
+import { useInventoryFx } from './useInventoryFx';
 
 const NEW_CATEGORY = '__new__';
 /** Proveedor guardado solo por nombre (ej. importado de CSV) que no existe en el catálogo de proveedores. */
@@ -53,7 +55,10 @@ interface FormState {
   location: string;
   supplierId: string;
   active: boolean;
+  taxExempt: boolean;
 }
+
+type PriceKey = 'costPrice' | 'salePrice';
 
 type FieldKey = 'name' | 'barcode' | 'sku' | 'category' | 'costPrice' | 'salePrice' | 'stock' | 'minStock';
 type Errors = Partial<Record<FieldKey, string>>;
@@ -69,6 +74,7 @@ export interface ProductFormDefaults {
 export function ProductFormModal({ product, defaults, onClose }: { product: Product | null; defaults?: ProductFormDefaults; onClose: () => void }) {
   const { business, businessId, actor, money, currencySymbol } = useActiveBusiness();
   const { products, productsById, suppliers, categories } = useCatalog();
+  const ifx = useInventoryFx();
   const online = useOnline();
   const toast = useToast();
   const settings = business.settings;
@@ -80,9 +86,10 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
     barcode: '',
     sku: '',
     unit: 'Unidad',
-    category: defaults?.category ?? '',
+    // Categoría preseleccionada para no bloquear el guardado (la primera del negocio o "General").
+    category: defaults?.category ?? categories[0] ?? '',
     categoryMode: categories.length === 0 ? 'new' : 'list',
-    newCategory: '',
+    newCategory: categories.length === 0 ? 'General' : '',
     brand: '',
     costPrice: '',
     salePrice: '',
@@ -90,7 +97,8 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
     minStock: settings.lowStockDefault,
     location: '',
     supplierId: defaults?.supplierId ?? '',
-    active: true
+    active: true,
+    taxExempt: false
   });
 
   const [form, setForm] = useState<FormState>(() =>
@@ -110,7 +118,9 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
           minStock: Number(product.minStock) || 0,
           location: product.location ?? '',
           supplierId: product.supplierId ?? (product.supplierName ? KEEP_SUPPLIER : ''),
-          active: product.active !== false
+          active: product.active !== false,
+          // Se conserva aunque el control no se muestre (negocios fuera de Venezuela).
+          taxExempt: !!product.taxExempt
         }
       : blank()
   );
@@ -120,6 +130,8 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
   const [remoteImage, setRemoteImage] = useState<string | null>(product?.imageUrl ?? null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  /** Campo de precio para el que está abierta la calculadora "Desde Bs". */
+  const [bsTarget, setBsTarget] = useState<PriceKey | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const newCategoryRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -155,21 +167,48 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
     set('barcode', code);
   };
 
-  const autoSku = () => {
+  const uniqueSku = () => {
     let sku = generateSku(settings.skuPrefix, effectiveCategory).toUpperCase();
     for (let i = 0; i < 20 && codeTaken(sku); i++) sku = generateSku(settings.skuPrefix, effectiveCategory).toUpperCase();
-    set('sku', sku);
+    return sku;
   };
+
+  const autoSku = () => set('sku', uniqueSku());
 
   /* ---------- Precios y margen ---------- */
 
+  // Todo en $ (moneda base). En Venezuela el margen se calcula sobre el precio sin IVA,
+  // así que marcar el producto como exento cambia la ganancia real.
   const cost = Number(form.costPrice) || 0;
   const price = Number(form.salePrice) || 0;
-  const pct = price > 0 ? marginPct(cost, price) : null;
+  const tax = ifx.tax;
+  const net = netPrice(price, form.taxExempt, tax);
+  const pct = price > 0 ? marginPct(cost, net) : null;
   const tone = pct === null ? null : marginTone(pct, settings.minMarginPct);
-  const profit = round2(price - cost);
-  const suggested = cost > 0 && settings.minMarginPct < 100 ? Math.ceil((cost / (1 - settings.minMarginPct / 100)) * 100) / 100 : null;
+  const profit = round2(net - cost);
+  const suggested =
+    cost > 0 && settings.minMarginPct < 100 ? ceilCents(grossFromNet(cost / (1 - settings.minMarginPct / 100), form.taxExempt, tax)) : null;
   const taxRate = Number(business.taxRate) || 0;
+  const taxName = business.taxName || 'IVA';
+
+  /** Desglose de IVA del precio capturado (solo negocios en Venezuela). */
+  const breakdown =
+    tax && price > 0
+      ? form.taxExempt
+        ? { base: price, tax: 0, total: price }
+        : tax.included
+          ? { base: round2(price / (1 + tax.rate / 100)), tax: round2(price - price / (1 + tax.rate / 100)), total: price }
+          : { base: price, tax: round2((price * tax.rate) / 100), total: round2(price * (1 + tax.rate / 100)) }
+      : null;
+
+  const priceHint = (value: number, fallback: string) =>
+    ifx.local && value > 0 ? <span className="font-medium text-on-surface-variant tnum">≈ {ifx.local(value)} a la tasa actual</span> : fallback;
+
+  const applyFromLocal = (key: PriceKey, usd: number) => {
+    set(key, usd);
+    setBsTarget(null);
+    setTimeout(() => document.getElementById(fieldId(key))?.focus(), 30);
+  };
 
   /* ---------- Imagen ---------- */
 
@@ -201,10 +240,9 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
 
   /* ---------- Guardado ---------- */
 
-  const validate = (): Errors => {
+  const validate = (sku: string): Errors => {
     const e: Errors = {};
     if (!form.name.trim()) e.name = 'Escribe el nombre del producto.';
-    const sku = form.sku.trim();
     if (!sku) e.sku = 'El SKU es obligatorio. Escríbelo o usa "Auto".';
     else {
       const k = normalize(sku);
@@ -237,12 +275,16 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
     setErrors({});
     setImageFile(null);
     setRemoteImage(null);
+    setBsTarget(null);
     setTimeout(() => nameRef.current?.focus(), 30);
   };
 
   const save = async (another: boolean) => {
     if (saving) return;
-    const errs = validate();
+    // SKU vacío → se genera uno único automáticamente.
+    const sku = form.sku.trim().toUpperCase() || uniqueSku();
+    if (sku !== form.sku) setForm((f) => ({ ...f, sku }));
+    const errs = validate(sku);
     setErrors(errs);
     const first = FIELD_ORDER.find((k) => errs[k]);
     if (first) {
@@ -259,7 +301,7 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
       const supplier = suppliers.find((s) => s.id === form.supplierId);
       const base: ProductInput = {
         name: form.name.trim(),
-        sku: form.sku.trim().toUpperCase(),
+        sku,
         barcode: form.barcode.trim(),
         category: effectiveCategory,
         brand: form.brand.trim(),
@@ -271,7 +313,8 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
         location: form.location.trim(),
         supplierId: supplier?.id ?? null,
         supplierName: supplier?.name ?? (form.supplierId === KEEP_SUPPLIER ? (product?.supplierName ?? null) : null),
-        active: form.active
+        active: form.active,
+        taxExempt: form.taxExempt
       };
 
       if (!product) {
@@ -401,12 +444,12 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
               />
             </Field>
 
-            <Field label="SKU" required htmlFor={fieldId('sku')} error={errors.sku} hint="Clave interna única." className="md:col-span-5">
+            <Field label="SKU" htmlFor={fieldId('sku')} error={errors.sku} hint="Clave interna única. Si lo dejas vacío se genera solo." className="md:col-span-5">
               <Input
                 id={fieldId('sku')}
                 value={form.sku}
                 onChange={(e) => set('sku', e.target.value.toUpperCase())}
-                placeholder={`${settings.skuPrefix || 'PRD'}-00001`}
+                placeholder="Automático"
                 autoComplete="off"
                 invalid={!!errors.sku}
                 className="tnum"
@@ -493,9 +536,26 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
         </FormSection>
 
         {/* 2. Precios y márgenes */}
-        <FormSection icon={Banknote} title="2. Precios y márgenes de ganancia">
+        <FormSection icon={Banknote} title="2. Precios y márgenes de ganancia" aside={
+            <span className="hidden sm:block">
+              <RateChip ifx={ifx} />
+            </span>
+          }
+        >
+          {ifx.missingRate && (
+            <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-body-sm text-amber-800" role="status">
+              <TriangleAlert className="mt-px size-4 shrink-0" aria-hidden />
+              Sin tasa de cambio: los equivalentes en Bs no están disponibles. Los precios se capturan en $ igual que siempre.
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Field label={`Costo proveedor (${currencySymbol})`} htmlFor={fieldId('costPrice')} error={errors.costPrice} hint="Lo que te cuesta cada unidad.">
+            <Field
+              label={`Costo proveedor (${currencySymbol})`}
+              htmlFor={fieldId('costPrice')}
+              error={errors.costPrice}
+              hint={priceHint(cost, 'Lo que te cuesta cada unidad.')}
+              aside={<FromLocalTrigger ifx={ifx} active={bsTarget === 'costPrice'} onClick={() => setBsTarget((t) => (t === 'costPrice' ? null : 'costPrice'))} />}
+            >
               <NumberInput
                 id={fieldId('costPrice')}
                 value={form.costPrice}
@@ -505,7 +565,14 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
                 invalid={!!errors.costPrice}
               />
             </Field>
-            <Field label={`Precio de venta final (${currencySymbol})`} required htmlFor={fieldId('salePrice')} error={errors.salePrice} hint="El que se cobra en caja.">
+            <Field
+              label={`Precio de venta final (${currencySymbol})`}
+              required
+              htmlFor={fieldId('salePrice')}
+              error={errors.salePrice}
+              hint={priceHint(price, 'El que se cobra en caja.')}
+              aside={<FromLocalTrigger ifx={ifx} active={bsTarget === 'salePrice'} onClick={() => setBsTarget((t) => (t === 'salePrice' ? null : 'salePrice'))} />}
+            >
               <NumberInput
                 id={fieldId('salePrice')}
                 value={form.salePrice}
@@ -516,6 +583,26 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
                 className="font-semibold"
               />
             </Field>
+            {ifx.exemptUi ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-label-md text-slate-700">Exento de {taxName}</span>
+                <label
+                  className={cn(
+                    'flex h-10 cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 transition-colors',
+                    form.taxExempt ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-slate-50'
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-body-md text-on-surface">
+                    <Receipt className={cn('size-[18px] shrink-0', form.taxExempt ? 'text-blue-600' : 'text-slate-400')} aria-hidden />
+                    <span className="truncate">
+                      {form.taxExempt ? `Exento · no paga ${taxName}` : taxRate > 0 ? `Gravado · ${taxName} ${formatNumber(taxRate, business.locale)}%` : 'Sin impuesto configurado'}
+                    </span>
+                  </span>
+                  <Toggle checked={form.taxExempt} onChange={(v) => set('taxExempt', v)} ariaLabel={`Exento de ${taxName}`} />
+                </label>
+                <p className="text-body-sm text-slate-500">Productos de la canasta básica, medicamentos y otros exentos. Salen marcados (E) en el ticket.</p>
+              </div>
+            ) : (
             <div className="flex flex-col gap-1.5">
               <span className="text-label-md text-slate-700">Impuesto</span>
               <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-body-md text-on-surface">
@@ -534,7 +621,20 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
                       : `Total al cliente: ${money(round2(price * (1 + taxRate / 100)))}`}
               </p>
             </div>
+            )}
           </div>
+
+          {bsTarget && ifx.dual && ifx.rate && (
+            <FromLocalHelper
+              key={bsTarget}
+              ifx={ifx}
+              title={bsTarget === 'salePrice' ? 'Calcular el precio de venta desde Bs' : 'Calcular el costo desde Bs'}
+              applyLabel={bsTarget === 'salePrice' ? 'Usar como precio' : 'Usar como costo'}
+              money={money}
+              onApply={(usd) => applyFromLocal(bsTarget, usd)}
+              onClose={() => setBsTarget(null)}
+            />
+          )}
 
           <div
             className={cn(
@@ -576,15 +676,36 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
                       <strong className={cn('tnum', profit > 0 ? 'text-primary' : 'text-error')}>
                         {profit > 0 ? '+' : ''}
                         {money(profit)}
-                      </strong>{' '}
-                      por unidad vendida.
+                      </strong>
+                      {ifx.local && <span className="whitespace-nowrap tnum"> · {ifx.local(profit)}</span>} por unidad vendida
+                      {tax && tax.included && !form.taxExempt ? `, ya sin ${taxName}.` : '.'}
                     </>
                   )}
                 </span>
+                {breakdown && tax && (
+                  <span className="text-body-sm text-on-surface-variant tnum">
+                    {form.taxExempt ? (
+                      <>
+                        <b className="font-semibold text-blue-700">Exento de {taxName}</b>: el cliente paga <b className="text-on-surface">{money(breakdown.total)}</b>
+                        {ifx.local && <span className="whitespace-nowrap"> ({ifx.local(breakdown.total)})</span>} sin impuesto.
+                      </>
+                    ) : (
+                      <>
+                        Base {money(breakdown.base)} + {taxName} {formatNumber(tax.rate, business.locale)}% {money(breakdown.tax)} ={' '}
+                        <b className="text-on-surface">{money(breakdown.total)}</b>
+                        {ifx.local && <span className="whitespace-nowrap"> ({ifx.local(breakdown.total)})</span>} {tax.included ? 'precio al cliente' : 'al cobrar'}.
+                      </>
+                    )}
+                  </span>
+                )}
                 {(tone === 'warn' || tone === 'bad') && (
                   <span className={cn('flex items-center gap-1 text-body-sm', tone === 'bad' ? 'text-red-700' : 'text-amber-800')}>
                     <TriangleAlert className="size-3.5 shrink-0" />
-                    {tone === 'bad' ? 'El precio no cubre el costo.' : `Por debajo del margen mínimo recomendado (${settings.minMarginPct}%).`}
+                    {tone === 'bad'
+                      ? tax && tax.included && !form.taxExempt && price > cost
+                        ? `Sin ${taxName}, el precio no cubre el costo.`
+                        : 'El precio no cubre el costo.'
+                      : `Por debajo del margen mínimo recomendado (${settings.minMarginPct}%).`}
                   </span>
                 )}
               </div>
@@ -597,7 +718,7 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
                   variant={tone === 'good' ? 'ghost' : 'tonal'}
                   icon={WandSparkles}
                   onClick={() => set('salePrice', suggested)}
-                  title={`Precio con el margen mínimo de ${settings.minMarginPct}%`}
+                  title={`Precio con el margen mínimo de ${settings.minMarginPct}%${tax && tax.included && !form.taxExempt ? ` (incluye ${taxName})` : ''}`}
                 >
                   Sugerir precio · {money(suggested)}
                 </Button>

@@ -1,7 +1,7 @@
 import { arrayUnion, doc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { DEFAULT_INVENTORY_SETTINGS, DEFAULT_RECEIPT_FOOTER, DEFAULT_ROLE_PERMISSIONS } from '@/config/app';
-import type { Business, InventorySettings } from '@/types';
+import type { Business, FxSettings, InventorySettings, PaymentMethodConfig } from '@/types';
 import { logActivityIn } from './activity';
 import { refs, type Actor } from './refs';
 
@@ -19,6 +19,10 @@ export interface CreateBusinessInput {
   taxId?: string;
   logoUrl?: string | null;
   logoPath?: string | null;
+  /** País (ej. "VE") y configuración bimonetaria. */
+  country?: string;
+  fx?: FxSettings;
+  paymentMethods?: PaymentMethodConfig[];
 }
 
 /**
@@ -51,6 +55,9 @@ export async function createBusiness(
     pricesIncludeTax: input.pricesIncludeTax,
     categories: input.categories,
     settings: DEFAULT_INVENTORY_SETTINGS,
+    country: input.country ?? null,
+    ...(input.fx ? { fx: input.fx } : {}),
+    ...(input.paymentMethods ? { paymentMethods: input.paymentMethods } : {}),
     receiptFooter: DEFAULT_RECEIPT_FOOTER,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -106,6 +113,9 @@ export type BusinessPatch = Partial<
     | 'pricesIncludeTax'
     | 'categories'
     | 'receiptFooter'
+    | 'country'
+    | 'fx'
+    | 'paymentMethods'
   >
 >;
 

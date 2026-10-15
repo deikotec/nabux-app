@@ -32,20 +32,21 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { can } = useBusiness();
+  const canPos = can('pos');
 
   useEffect(() => setDrawer(false), [location.pathname]);
 
   // Atajo global: F2 → Terminal POS
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'F2' && can('pos') && location.pathname !== '/pos') {
+      if (e.key === 'F2' && canPos && location.pathname !== '/pos') {
         e.preventDefault();
         navigate('/pos');
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [can, navigate, location.pathname]);
+  }, [canPos, navigate, location.pathname]);
 
   return (
     <div className="min-h-dvh bg-surface">

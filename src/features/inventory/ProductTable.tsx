@@ -2,7 +2,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui';
 import { formatNumber } from '@/lib/format';
 import { cn, stockStatus } from '@/lib/utils';
 import type { Product } from '@/types';
-import { LastRestock, MarginChip, ProductIdentity, RowActions, StockLevel, type ProductHandlers, type RowContext } from './ProductParts';
+import { LastRestock, MarginChip, PriceStack, ProductIdentity, RowActions, StockLevel, type ProductHandlers, type RowContext } from './ProductParts';
 
 export interface ProductListProps {
   products: Product[];
@@ -81,13 +81,10 @@ export function ProductTable({ products, ctx, handlers, selected, onToggle, onTo
                 </span>
               </TD>
               <TD align="right">
-                <div className="flex flex-col items-end whitespace-nowrap">
-                  <span className="text-label-lg text-on-surface">{money(p.salePrice)}</span>
-                  <span className="text-body-sm text-on-surface-variant">Costo: {money(p.costPrice)}</span>
-                </div>
+                <PriceStack product={p} money={money} local={ctx.local} />
               </TD>
               <TD align="right">
-                <MarginChip product={p} minMarginPct={ctx.minMarginPct} />
+                <MarginChip product={p} minMarginPct={ctx.minMarginPct} tax={ctx.tax} />
               </TD>
               <TD>
                 <StockLevel product={p} locale={ctx.locale} className="min-w-40" />

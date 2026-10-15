@@ -14,7 +14,91 @@ export type Permission =
   | 'staff' // gestionar personal e invitaciones
   | 'settings'; // configurar el negocio
 
-export type PaymentMethod = 'cash' | 'card' | 'transfer';
+/** Métodos de las primeras versiones (ventas antiguas). */
+export type LegacyPaymentMethod = 'cash' | 'card' | 'transfer';
+
+/** Id de un método de pago configurado (ej. "cash_usd", "pago_movil") o legado ("cash"). */
+export type PaymentMethod = string;
+
+/* ---------------- Multimoneda (Venezuela: USD + Bs) ---------------- */
+
+/** Fuente de la tasa de cambio que usa el POS. */
+export type RateSource = 'bcv' | 'parallel' | 'custom';
+
+export interface FxSettings {
+  /** Modo bimonetario: precios en moneda base (USD) y cobro también en moneda local (Bs). */
+  enabled: boolean;
+  /** Moneda local de cobro, ej. "VES". */
+  localCurrency: string;
+  /** Locale para formatear la moneda local, ej. "es-VE". */
+  localLocale: string;
+  /** Tasa con la que se convierten los precios en el POS. */
+  rateSource: RateSource;
+  /** Consultar automáticamente BCV y paralelo en internet al abrir la app. */
+  autoUpdate: boolean;
+  /** IGTF (Impuesto a las Grandes Transacciones Financieras) sobre pagos en divisas. */
+  igtfEnabled: boolean;
+  /** Tasa del IGTF en %, ej. 3. */
+  igtfRate: number;
+  /** Redondeo de montos en moneda local: 0.01, 1, 5, 10… */
+  localRounding: number;
+}
+
+/** Tasas vigentes: unidades de moneda local por 1 unidad de moneda base (Bs por $). */
+export interface FxRates {
+  bcv: number | null;
+  parallel: number | null;
+  custom: number | null;
+  /** Fecha de vigencia publicada por el BCV (yyyy-mm-dd). */
+  bcvDate?: string | null;
+  parallelUpdatedAt?: string | null;
+  updatedAt?: TS;
+  updatedBy?: string | null;
+  updatedByName?: string | null;
+  /** "auto" si vino de internet, "manual" si la cargó alguien. */
+  source?: 'auto' | 'manual';
+}
+
+export interface FxHistoryEntry extends Omit<FxRates, 'updatedAt'> {
+  id: string;
+  userId: string;
+  userName: string;
+  createdAt?: TS;
+}
+
+export type PaymentKind = 'cash' | 'mobile' | 'card' | 'transfer' | 'crypto' | 'credit' | 'other';
+
+/** Forma de pago configurable por negocio. */
+export interface PaymentMethodConfig {
+  id: string;
+  label: string;
+  /** "base" = moneda de referencia (USD), "local" = moneda local (Bs). */
+  currency: 'base' | 'local';
+  kind: PaymentKind;
+  /** Aplica IGTF (pagos en divisas). */
+  igtf: boolean;
+  /** Pide número de referencia (pago móvil, transferencia, Zelle…). */
+  requiresReference: boolean;
+  /** Se puede usar para entregar vuelto. */
+  allowsChange: boolean;
+  active: boolean;
+}
+
+/** Pago aplicado a una venta (una venta puede tener varios: pago mixto). */
+export interface SalePayment {
+  methodId: string;
+  label: string;
+  /** Moneda ISO del pago ("USD", "VES"). */
+  currency: string;
+  kind: PaymentKind;
+  /** Monto entregado en la moneda del pago (incluye IGTF y lo que se devolvió de vuelto). */
+  amount: number;
+  /** Parte que cubre la venta, en moneda base (sin IGTF ni vuelto). */
+  amountBase: number;
+  /** IGTF cobrado sobre este pago, en moneda base. */
+  igtf: number;
+  reference?: string;
+}
 
 export interface UserProfile {
   uid: string;
@@ -69,6 +153,12 @@ export interface Business {
   categories: string[];
   settings: InventorySettings;
   receiptFooter?: string;
+  /** País (ej. "VE") para ajustes regionales. */
+  country?: string;
+  /** Configuración bimonetaria (USD + Bs). Ausente o enabled=false → una sola moneda. */
+  fx?: FxSettings;
+  /** Formas de pago del negocio. Si falta, se usan las predeterminadas del país. */
+  paymentMethods?: PaymentMethodConfig[];
   createdAt?: TS;
   updatedAt?: TS;
 }
@@ -121,6 +211,8 @@ export interface Product {
   imageUrl?: string | null;
   imagePath?: string | null;
   active: boolean;
+  /** Exento de IVA (ej. alimentos de la canasta básica). */
+  taxExempt?: boolean;
   /** Lowercase "name sku barcode brand" para búsquedas rápidas en cliente. */
   searchText?: string;
   createdAt?: TS;
@@ -157,6 +249,8 @@ export interface SaleItem {
   unitCost: number;
   /** unitPrice * qty */
   total: number;
+  /** Exento de IVA. */
+  taxExempt?: boolean;
 }
 
 export interface SaleTotals {
@@ -179,8 +273,31 @@ export interface Sale extends SaleTotals {
   number: number | null;
   items: SaleItem[];
   productIds: string[];
+  /** Método principal (el de mayor monto) o "mixed" si hubo varios. Ventas antiguas: cash|card|transfer. */
   paymentMethod: PaymentMethod;
+  /** Pagos aplicados (ventas nuevas). Para ventas antiguas usa salePayments(sale). */
+  payments?: SalePayment[];
+  /** Moneda base de la venta (ej. "USD"). */
+  currency?: string;
+  /** Moneda local y tasa usada (modo bimonetario). */
+  localCurrency?: string | null;
+  rate?: number | null;
+  rateSource?: RateSource | null;
+  /** Total en moneda local (total × tasa). */
+  totalLocal?: number | null;
+  /** % de IGTF con que se cobró la venta. */
+  igtfRate?: number | null;
+  /** IGTF total cobrado (moneda base). No forma parte de `total`. */
+  igtf?: number;
+  /** Total cobrado al cliente = total + igtf (moneda base). */
+  amountDue?: number;
+  /** Vuelto entregado: método, moneda y monto en esa moneda. */
+  changeMethodId?: string | null;
+  changeCurrency?: string | null;
+  changeAmount?: number | null;
+  /** Ventas antiguas en efectivo. */
   cashReceived?: number | null;
+  /** Vuelto en moneda base. */
   change?: number | null;
   customerName?: string;
   cashierId: string;
@@ -215,12 +332,33 @@ export interface StockMovement {
   createdAt?: TS;
 }
 
+export interface MethodTotal {
+  label: string;
+  /** Moneda ISO del método. */
+  currency: string;
+  kind: PaymentKind;
+  /** Neto recibido en la moneda del método (descontando vueltos entregados con ese método). */
+  amount: number;
+  /** Equivalente en moneda base (parte aplicada a ventas). */
+  amountBase: number;
+  count: number;
+}
+
 export interface PaymentTotals {
+  /** Ventas totales (moneda base, sin IGTF). */
+  total: number;
+  count: number;
+  /** IGTF cobrado (moneda base). */
+  igtf?: number;
+  /** Totales por método de pago. */
+  byMethod?: Record<string, MethodTotal>;
+  /** Efectivo neto en moneda base (USD) y en moneda local (Bs). */
+  cashBase?: number;
+  cashLocal?: number;
+  /** Compatibilidad con cortes antiguos. */
   cash: number;
   card: number;
   transfer: number;
-  total: number;
-  count: number;
 }
 
 export interface CashSession {
@@ -229,13 +367,21 @@ export interface CashSession {
   openedBy: string;
   openedByName: string;
   openedAt?: TS;
+  /** Fondo inicial en moneda base (USD). */
   openingFloat: number;
+  /** Fondo inicial en moneda local (Bs), modo bimonetario. */
+  openingFloatLocal?: number | null;
+  localCurrency?: string | null;
   closedAt?: TS;
   closedBy?: string | null;
   closedByName?: string | null;
   declaredCash?: number | null;
   expectedCash?: number | null;
   difference?: number | null;
+  /** Efectivo en moneda local: contado, esperado y diferencia. */
+  declaredCashLocal?: number | null;
+  expectedCashLocal?: number | null;
+  differenceLocal?: number | null;
   totals?: PaymentTotals | null;
   notes?: string;
 }

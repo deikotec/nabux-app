@@ -7,6 +7,9 @@ export const refs = {
   business: (bid: string) => doc(db, 'businesses', bid),
   businesses: () => collection(db, 'businesses'),
   counters: (bid: string) => doc(db, 'businesses', bid, 'meta', 'counters'),
+  /** Tasas de cambio vigentes (modo bimonetario). */
+  fx: (bid: string) => doc(db, 'businesses', bid, 'meta', 'fx'),
+  fxHistory: (bid: string) => collection(db, 'businesses', bid, 'fxHistory'),
   members: (bid: string) => collection(db, 'businesses', bid, 'members'),
   member: (bid: string, uid: string) => doc(db, 'businesses', bid, 'members', uid),
   products: (bid: string) => collection(db, 'businesses', bid, 'products'),

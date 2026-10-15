@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Download, Info, ReceiptText, SearchX, TriangleAlert } from 'lucide-react';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
+import { useFx } from '@/contexts/FxContext';
 import { useSalesRange } from '@/hooks/data';
 import { addDays, dayKey, eachDay, endOfDay, fromInputDate, rangeFromPreset, startOfDay, toInputDate, type DateRange } from '@/lib/dates';
 import { formatDate, formatNumber } from '@/lib/format';
 import { errorMessage } from '@/lib/utils';
 import { Badge, Button, Card, EmptyState, PageHeader, Pagination, useToast } from '@/components/ui';
 import type { Sale } from '@/types';
+import { PaymentBreakdownCard } from './PaymentBreakdownCard';
 import { SaleDetailModal } from './SaleDetailModal';
 import { FilterBar, RangeBar, type MethodFilter, type RangeOption, type StatusFilter } from './SalesFilters';
 import { SalesList } from './SalesList';
 import { SalesSummary } from './SalesSummary';
-import { exportSalesCsv, saleMatches, salesStats } from './saleUtils';
+import { exportSalesCsv, methodFilterOptions, MIXED_FILTER, saleMatches, saleMatchesMethod, salesStats } from './saleUtils';
 
 const PAGE_SIZE = 20;
 
@@ -33,6 +35,7 @@ function rangeText(r: DateRange) {
 
 export default function SalesPage() {
   const { business, can, money } = useActiveBusiness();
+  const fx = useFx();
   const toast = useToast();
   const canReports = can('reports');
 
@@ -61,16 +64,18 @@ export default function SalesPage() {
   // Si el cajero elegido ya no aparece en el período, se ignora el filtro.
   const cashierFilter = canReports && cashier !== 'all' && cashiers.some((c) => c.id === cashier) ? cashier : 'all';
 
+  // Formas de pago del negocio + las que aparecen en las ventas cargadas (incluye métodos de ventas antiguas).
+  const methodOptions = useMemo(() => methodFilterOptions(sales, fx.allMethods, fx.enabled), [sales, fx.allMethods, fx.enabled]);
+  const methodFilter =
+    method === 'all' || method === MIXED_FILTER || [...methodOptions.configured, ...methodOptions.legacy].some((o) => o.value === method) ? method : 'all';
+
   // Filtros excepto el estado: así el resumen muestra a la vez lo vendido y lo anulado.
   const base = useMemo(
     () =>
       sales.filter(
-        (s) =>
-          (method === 'all' || s.paymentMethod === method) &&
-          (cashierFilter === 'all' || s.cashierId === cashierFilter) &&
-          saleMatches(s, search)
+        (s) => saleMatchesMethod(s, methodFilter) && (cashierFilter === 'all' || s.cashierId === cashierFilter) && saleMatches(s, search)
       ),
-    [sales, method, cashierFilter, search]
+    [sales, methodFilter, cashierFilter, search]
   );
   const rows = useMemo(() => (status === 'all' ? base : base.filter((s) => s.status === status)), [base, status]);
   const stats = useMemo(() => salesStats(base), [base]);
@@ -87,7 +92,7 @@ export default function SalesPage() {
   // La venta seleccionada se toma de la lista en tiempo real (refleja la anulación al instante).
   const selectedSale = selected ? (sales.find((s) => s.id === selected.id) ?? selected) : null;
 
-  const hasFilters = method !== 'all' || status !== 'all' || cashierFilter !== 'all' || search.trim() !== '';
+  const hasFilters = methodFilter !== 'all' || status !== 'all' || cashierFilter !== 'all' || search.trim() !== '';
   const clearFilters = () => {
     setMethod('all');
     setStatus('all');
@@ -101,7 +106,13 @@ export default function SalesPage() {
       return;
     }
     const name = `ventas-${business.name.replace(/[^\w-]+/g, '-').toLowerCase()}-${dayKey(range.from)}_${dayKey(range.to)}.csv`;
-    exportSalesCsv(name, rows, canReports);
+    exportSalesCsv(name, rows, {
+      includeProfit: canReports,
+      dual: fx.enabled,
+      methods: fx.allMethods,
+      baseCurrency: fx.baseCurrency,
+      localCurrency: fx.localCurrency
+    });
     toast.success(`Se exportaron ${formatNumber(rows.length)} ventas.`);
   };
 
@@ -142,7 +153,16 @@ export default function SalesPage() {
           rangeLabel={rangeText(range)}
         />
 
-        <SalesSummary stats={stats} days={days} loading={loading} showProfit={canReports} money={money} />
+        <SalesSummary
+          stats={stats}
+          days={days}
+          loading={loading}
+          showProfit={canReports}
+          money={money}
+          formatLocal={fx.enabled ? (n) => fx.moneyIn(n, fx.localCurrency) : undefined}
+        />
+
+        {fx.enabled && <PaymentBreakdownCard sales={base} loading={loading} />}
 
         <Card padded={false} className="overflow-hidden">
           <div className="flex flex-col gap-4 p-4 sm:p-5">
@@ -157,8 +177,9 @@ export default function SalesPage() {
             <FilterBar
               search={search}
               onSearch={setSearch}
-              method={method}
+              method={methodFilter}
               onMethod={setMethod}
+              methodOptions={methodOptions}
               status={status}
               onStatus={setStatus}
               cashier={cashierFilter}

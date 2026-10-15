@@ -11,6 +11,8 @@ export interface CartLine {
   unitPrice: number;
   unitCost: number;
   qty: number;
+  /** Exento de IVA (se marca "(E)" en el ticket). */
+  taxExempt?: boolean;
 }
 
 export type DiscountMode = 'pct' | 'amount';
@@ -19,6 +21,20 @@ export type DiscountMode = 'pct' | 'amount';
 export interface TicketDiscount {
   mode: DiscountMode;
   value: number;
+}
+
+/**
+ * Pago capturado en el POS (borrador antes de cobrar). Un ticket puede tener varios (pago mixto).
+ * Mientras `auto` sea true el monto lo calcula el POS (exacto para cubrir lo que falta, con IGTF)
+ * y sigue al total si cambia el ticket; al editarlo el cajero, queda fijo.
+ */
+export interface PaymentEntry {
+  key: string;
+  methodId: string;
+  /** Monto entregado en la moneda del método (se ignora mientras `auto` sea true). */
+  amount: number | '';
+  reference: string;
+  auto: boolean;
 }
 
 /** Ticket pausado (F8). Se guarda en localStorage por negocio. */
@@ -30,8 +46,12 @@ export interface HeldTicket {
   discount: TicketDiscount | null;
   customerName: string;
   itemCount: number;
+  /** Total en moneda base. */
   total: number;
   cashierName: string;
+  /** Pagos que ya se habían registrado (versiones nuevas). */
+  payments?: PaymentEntry[];
+  changeMethodId?: string | null;
 }
 
 /** Estado de stock de una línea, calculado contra el catálogo en tiempo real. */

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { CircleUserRound, CirclePause, LockKeyhole, Minus, Percent, Plus, ReceiptText, ShoppingCart, Trash2, User, X } from 'lucide-react';
+import { CircleUserRound, CirclePause, HandCoins, LockKeyhole, Minus, Percent, Plus, ReceiptText, ShoppingCart, Trash2, User, X } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -94,6 +94,7 @@ export function TicketLines({
   allowNegative,
   highlight,
   money,
+  moneyLocal,
   onIncrement,
   onSetQty,
   onRemove,
@@ -104,6 +105,8 @@ export function TicketLines({
   allowNegative: boolean;
   highlight: TicketHighlight | null;
   money: (n: number) => string;
+  /** Equivalente en moneda local (Bs); solo en modo bimonetario con tasa. */
+  moneyLocal?: (n: number) => string;
   onIncrement: (key: string, delta: number) => void;
   onSetQty: (key: string, qty: number) => void;
   onRemove: (key: string) => void;
@@ -149,8 +152,11 @@ export function TicketLines({
               flashKey === line.key && 'bg-primary-fixed/25'
             )}
           >
-            <p className="truncate text-headline-sm text-on-surface [grid-area:name]" title={line.name}>
-              {line.name}
+            <p className="flex min-w-0 items-center gap-1.5 [grid-area:name]">
+              <span className="truncate text-headline-sm text-on-surface" title={line.name}>
+                {line.name}
+              </span>
+              {line.taxExempt && <ExemptBadge />}
             </p>
             <p className="flex min-w-0 items-center gap-1.5 text-body-sm text-on-surface-variant tnum [grid-area:meta]">
               <span className="shrink-0">{money(line.unitPrice)} c/u</span>
@@ -162,7 +168,10 @@ export function TicketLines({
             <div className="justify-self-end [grid-area:step]">
               <QtyStepper line={line} onIncrement={onIncrement} onSetQty={onSetQty} />
             </div>
-            <span className="min-w-16 text-right text-label-lg text-on-surface tnum [grid-area:total] @md:min-w-20">{money(total)}</span>
+            <span className="flex min-w-16 flex-col items-end text-right tnum [grid-area:total] @md:min-w-20">
+              <span className="text-label-lg text-on-surface">{money(total)}</span>
+              {moneyLocal && <span className="text-[11px] leading-tight font-semibold whitespace-nowrap text-secondary">{moneyLocal(total)}</span>}
+            </span>
             <button
               type="button"
               onClick={() => onRemove(line.key)}
@@ -176,6 +185,19 @@ export function TicketLines({
         );
       })}
     </ul>
+  );
+}
+
+/** Marca de artículo exento de impuesto: "(E)" como en el ticket impreso. */
+export function ExemptBadge({ taxName = 'IVA' }: { taxName?: string }) {
+  return (
+    <span
+      title={`Exento de ${taxName}`}
+      aria-label={`Exento de ${taxName}`}
+      className="inline-flex shrink-0 items-center rounded bg-tertiary-fixed px-1 text-[10px] leading-4 font-bold text-on-tertiary-fixed-variant"
+    >
+      (E)
+    </span>
   );
 }
 
@@ -275,6 +297,10 @@ export function TicketTotals({
   canDiscount,
   onDiscount,
   money,
+  exemptTotal = 0,
+  dual = false,
+  moneyLocal,
+  rateLabel,
   className
 }: {
   totals: SaleTotals;
@@ -286,9 +312,18 @@ export function TicketTotals({
   canDiscount: boolean;
   onDiscount: () => void;
   money: (n: number) => string;
+  /** Importe de artículos exentos (después del descuento). */
+  exemptTotal?: number;
+  /** Modo bimonetario ($ + Bs). */
+  dual?: boolean;
+  /** Equivalente en Bs (solo con tasa). */
+  moneyLocal?: (n: number) => string;
+  /** "BCV 879,12 Bs/$" o null si no hay tasa. */
+  rateLabel?: string | null;
   className?: string;
 }) {
   const hasDiscount = totals.discount > 0;
+  const tax = taxName || 'Impuesto';
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <Row label={`Subtotal (${formatNumber(totals.itemCount)} ${totals.itemCount === 1 ? 'artículo' : 'artículos'})`} value={money(totals.gross)} />
@@ -307,18 +342,37 @@ export function TicketTotals({
         value={hasDiscount ? `−${money(totals.discount)}` : money(0)}
         valueClass="text-primary"
       />
+      {exemptTotal > 0 && (
+        <Row
+          label={
+            <span className="flex flex-wrap items-center gap-x-1.5">
+              Exento de {tax} <ExemptBadge taxName={tax} />
+            </span>
+          }
+          value={money(exemptTotal)}
+        />
+      )}
       <Row
-        label={`${taxName || 'Impuesto'} (${formatNumber(taxRate)}%)${pricesIncludeTax ? ' · incluido' : ''}`}
+        label={`${tax} (${formatNumber(taxRate)}%)${pricesIncludeTax ? ' · incluido' : ''}${exemptTotal > 0 ? ' · solo gravados' : ''}`}
         value={money(totals.tax)}
       />
       <div className="mt-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-1 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-card">
         <div className="flex flex-col">
-          <span className="text-label-sm tracking-wider text-on-surface uppercase">Total a cobrar</span>
-          <span className="text-body-sm text-primary">Moneda: {currency}</span>
+          <span className="text-label-sm tracking-wider text-on-surface uppercase">{dual ? 'Total' : 'Total a cobrar'}</span>
+          {dual ? (
+            <span className={cn('text-body-sm tnum', rateLabel ? 'text-secondary' : 'text-error')}>
+              {rateLabel ? `Tasa ${rateLabel}` : 'Sin tasa de cambio'}
+            </span>
+          ) : (
+            <span className="text-body-sm text-primary">Moneda: {currency}</span>
+          )}
         </div>
-        <span aria-live="polite" className="ml-auto text-headline-lg text-primary tnum @sm:text-display-lg">
-          {money(totals.total)}
-        </span>
+        <div aria-live="polite" className="ml-auto flex flex-col items-end">
+          <span className="text-headline-lg text-primary tnum @sm:text-display-lg">{money(totals.total)}</span>
+          {moneyLocal && (
+            <span className="text-headline-md leading-tight font-bold text-secondary tnum @sm:text-headline-lg">{moneyLocal(totals.total)}</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -342,6 +396,7 @@ export function TicketActions({
   processing,
   checkoutDisabled,
   blockReason,
+  changeNote,
   needsCash,
   onOpenCash,
   autoPrint,
@@ -357,6 +412,8 @@ export function TicketActions({
   processing: boolean;
   checkoutDisabled: boolean;
   blockReason: string | null;
+  /** Vuelto a entregar (siempre visible junto al botón Cobrar). */
+  changeNote?: string | null;
   needsCash: boolean;
   onOpenCash: () => void;
   autoPrint: boolean;
@@ -378,10 +435,15 @@ export function TicketActions({
             Abrir caja
           </Button>
         </div>
+      ) : blockReason ? (
+        <p role="status" className="text-center text-body-sm text-on-surface-variant">
+          {blockReason}
+        </p>
       ) : (
-        blockReason && (
-          <p role="status" className="text-center text-body-sm text-on-surface-variant">
-            {blockReason}
+        changeNote && (
+          <p role="status" className="flex items-center justify-center gap-1.5 rounded-lg bg-primary-fixed/50 px-3 py-1.5 text-center text-label-lg text-on-primary-fixed-variant tnum">
+            <HandCoins className="size-4 shrink-0" />
+            {changeNote}
           </p>
         )
       )}

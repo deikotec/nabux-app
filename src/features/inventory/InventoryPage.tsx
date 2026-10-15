@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ArrowLeftRight, ChevronDown, Download, Eye, EyeOff, FileDown, FileUp, Lock, Package, PackageSearch, Plus } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, Download, Eye, EyeOff, FileDown, FileUp, Lock, Package, PackageSearch, Percent, Plus } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, MenuItem, PageHeader, Pagination, Popover, Select, Skeleton, useConfirm, useToast } from '@/components/ui';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCatalog } from '@/contexts/CatalogContext';
@@ -9,13 +9,16 @@ import { formatNumber } from '@/lib/format';
 import { downloadFile, errorMessage } from '@/lib/utils';
 import { adjustStock, deleteProduct, setProductActive } from '@/services/products';
 import type { Product } from '@/types';
+import { BulkPriceModal, type BulkScope } from './BulkPriceModal';
 import { FilterBar } from './FilterBar';
+import { MissingRateNotice, RateChip } from './FxBits';
 import {
   commitWrite,
   computeKpis,
   DEFAULT_FILTERS,
   fileStamp,
   filterProducts,
+  hasActiveFilters,
   NO_SUPPLIER,
   PAGE_SIZES,
   productsToCsv,
@@ -28,6 +31,7 @@ import {
   type StatusFilter
 } from './helpers';
 import { downloadImportTemplate, ImportModal } from './ImportModal';
+import { useInventoryFx } from './useInventoryFx';
 import { InventoryKpis } from './InventoryKpis';
 import { KardexModal } from './KardexModal';
 import { ProductCardList } from './ProductCardList';
@@ -50,6 +54,7 @@ function readPageSize(): number {
 export default function InventoryPage() {
   const { business, businessId, actor, can, money } = useActiveBusiness();
   const { products, suppliers, loading, productsById, findByCode, categories } = useCatalog();
+  const ifx = useInventoryFx();
   const toast = useToast();
   const { confirm } = useConfirm();
   const online = useOnline();
@@ -93,7 +98,7 @@ export default function InventoryPage() {
   /* ---------- Datos derivados ---------- */
 
   const suppliersById = useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers]);
-  const kpis = useMemo(() => computeKpis(products), [products]);
+  const kpis = useMemo(() => computeKpis(products, ifx.tax), [products, ifx.tax]);
 
   // Un escaneo (código de barras / SKU exacto) muestra y resalta ese producto, sin importar los demás filtros.
   const exactMatch = useMemo(() => {
@@ -101,9 +106,11 @@ export default function InventoryPage() {
     return q.length >= 3 ? (findByCode(q) ?? null) : null;
   }, [filters.search, findByCode]);
 
+  // Si el filtro de IVA deja de aplicar (negocio fuera de VE), no debe esconder productos.
+  const effectiveFilters = useMemo(() => (ifx.exemptUi || !filters.tax ? filters : { ...filters, tax: DEFAULT_FILTERS.tax }), [filters, ifx.exemptUi]);
   const filtered = useMemo(
-    () => (exactMatch ? [exactMatch] : sortProducts(filterProducts(products, filters), filters.sort)),
-    [products, filters, exactMatch]
+    () => (exactMatch ? [exactMatch] : sortProducts(filterProducts(products, effectiveFilters), effectiveFilters.sort, ifx.tax)),
+    [products, effectiveFilters, exactMatch, ifx.tax]
   );
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -141,9 +148,10 @@ export default function InventoryPage() {
   const [move, setMove] = useState<{ productId: string; type: MoveType } | null>(null);
   const [kardexId, setKardexId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [bulk, setBulk] = useState<{ scope: BulkScope } | null>(null);
   const closeMove = useCallback(() => setMove(null), []);
   const kardexProduct = kardexId ? (productsById.get(kardexId) ?? null) : null;
-  const anyModal = !!form || !!move || !!kardexId || importOpen;
+  const anyModal = !!form || !!move || !!kardexId || importOpen || !!bulk;
 
   // Atajo: F3 o Ctrl+B enfoca el buscador/escáner.
   useEffect(() => {
@@ -217,18 +225,27 @@ export default function InventoryPage() {
     blockNegative: !business.settings.allowNegativeStock,
     minMarginPct: business.settings.minMarginPct,
     locale: business.locale,
-    supplierOf: (p) => supplierName(p, suppliersById)
+    supplierOf: (p) => supplierName(p, suppliersById),
+    local: ifx.local,
+    tax: ifx.tax
   };
 
   /* ---------- CSV ---------- */
+
+  const csvOptions = { dual: ifx.dual, exempt: ifx.exemptUi };
 
   const exportCsv = (list: Product[], suffix = '') => {
     if (!list.length) {
       toast.info('No hay productos para exportar.');
       return;
     }
-    downloadFile(`inventario-${slug(business.name)}${suffix}-${fileStamp()}.csv`, productsToCsv(list, suppliersById));
-    toast.success(`Exportaste ${formatNumber(list.length, business.locale)} ${list.length === 1 ? 'producto' : 'productos'}.`);
+    downloadFile(
+      `inventario-${slug(business.name)}${suffix}-${fileStamp()}.csv`,
+      productsToCsv(list, suppliersById, { ...csvOptions, toLocal: ifx.toLocal })
+    );
+    const count = `${formatNumber(list.length, business.locale)} ${list.length === 1 ? 'producto' : 'productos'}`;
+    if (ifx.dual && !ifx.rate) toast.warning(`Exportaste ${count}. Sin tasa de cambio, la columna precio_bs quedó vacía.`);
+    else toast.success(`Exportaste ${count}.`);
   };
 
   const bulkSetActive = async (active: boolean) => {
@@ -287,13 +304,17 @@ export default function InventoryPage() {
         }
       />
 
+      <MissingRateNotice ifx={ifx} className="mb-4" />
+
       <InventoryKpis
         kpis={kpis}
         loading={loading}
         status={exactMatch ? 'all' : filters.status}
         onStatus={(s: StatusFilter) => updateFilters({ status: s, search: exactMatch ? '' : filters.search })}
         money={money}
+        local={ifx.local}
         locale={business.locale}
+        netMargin={!!ifx.tax?.included}
       />
 
       <Card padded={false} className="mt-6 flex flex-col gap-5 p-3 sm:p-5">
@@ -305,6 +326,7 @@ export default function InventoryPage() {
               <span className="rounded-full bg-surface-container px-2.5 py-0.5 text-label-sm text-on-surface-variant tnum">
                 {formatNumber(products.length, business.locale)} {products.length === 1 ? 'registro' : 'registros'}
               </span>
+              <RateChip ifx={ifx} />
             </div>
             <p className="text-body-sm text-on-surface-variant">Control de existencias, costeo, márgenes y reposición en un solo lugar.</p>
           </div>
@@ -346,7 +368,7 @@ export default function InventoryPage() {
                         icon={Download}
                         onClick={() => {
                           close();
-                          downloadImportTemplate();
+                          downloadImportTemplate(csvOptions);
                         }}
                       >
                         Descargar plantilla
@@ -356,6 +378,18 @@ export default function InventoryPage() {
                 </div>
               )}
             </Popover>
+            {canEdit && products.length > 0 && (
+              <Button
+                variant="soft"
+                icon={Percent}
+                onClick={() => setBulk({ scope: selectedProducts.length ? 'selected' : 'filtered' })}
+                aria-label="Ajustar precios"
+                title="Subir o bajar precios por porcentaje"
+              >
+                <span className="sm:hidden">Precios</span>
+                <span className="hidden sm:inline">Ajustar precios</span>
+              </Button>
+            )}
             {canEdit && (
               <Button icon={Plus} onClick={() => setForm({ product: null })}>
                 Nuevo producto
@@ -373,6 +407,8 @@ export default function InventoryPage() {
           searchRef={searchRef}
           exactMatch={exactMatch}
           onOpenMatch={openMatch}
+          showTax={ifx.exemptUi}
+          taxName={ifx.taxName}
         />
 
         {/* Acciones masivas */}
@@ -401,6 +437,9 @@ export default function InventoryPage() {
               </Button>
               {canEdit && (
                 <>
+                  <Button size="sm" variant="secondary" icon={Percent} onClick={() => setBulk({ scope: 'selected' })}>
+                    Ajustar precios
+                  </Button>
                   <Button size="sm" variant="secondary" icon={Eye} onClick={() => bulkSetActive(true)}>
                     Activar
                   </Button>
@@ -504,6 +543,21 @@ export default function InventoryPage() {
         />
       )}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} />}
+      {bulk && canEdit && (
+        <BulkPriceModal
+          selected={selectedProducts}
+          filtered={filtered}
+          all={products}
+          categories={categories}
+          filtersActive={!!exactMatch || hasActiveFilters(effectiveFilters)}
+          initialScope={bulk.scope}
+          initialCategory={filters.category || undefined}
+          onClose={() => setBulk(null)}
+          onDone={(scope) => {
+            if (scope === 'selected') clearSelection();
+          }}
+        />
+      )}
     </>
   );
 }

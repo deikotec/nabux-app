@@ -3,7 +3,7 @@ import { ChevronDown, CornerDownLeft, FunnelX, ScanBarcode } from 'lucide-react'
 import { Button, Kbd, SearchInput } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import type { Product, Supplier } from '@/types';
-import { DEFAULT_FILTERS, hasActiveFilters, NO_SUPPLIER, SORT_OPTIONS, STATUS_OPTIONS, type Filters } from './helpers';
+import { DEFAULT_FILTERS, hasActiveFilters, NO_SUPPLIER, SORT_OPTIONS, STATUS_OPTIONS, taxOptions, type Filters, type TaxFilter } from './helpers';
 
 interface Option {
   value: string;
@@ -64,9 +64,12 @@ interface Props {
   /** Producto cuyo código de barras / SKU coincide exacto con la búsqueda (escaneo). */
   exactMatch: Product | null;
   onOpenMatch: () => void;
+  /** Muestra el filtro "Exentos de IVA / Gravados" (negocios en Venezuela). */
+  showTax?: boolean;
+  taxName?: string;
 }
 
-export function FilterBar({ filters, onChange, onClear, categories, suppliers, searchRef, exactMatch, onOpenMatch }: Props) {
+export function FilterBar({ filters, onChange, onClear, categories, suppliers, searchRef, exactMatch, onOpenMatch, showTax, taxName = 'IVA' }: Props) {
   const active = hasActiveFilters(filters);
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -119,6 +122,16 @@ export function FilterBar({ filters, onChange, onClear, categories, suppliers, s
             options={[{ value: '', label: 'Todos' }, { value: NO_SUPPLIER, label: 'Sin proveedor' }, ...suppliers.map((s) => ({ value: s.id, label: s.name }))]}
             className={selectClass}
           />
+          {showTax && (
+            <FilterSelect
+              label={taxName}
+              value={filters.tax}
+              defaultValue={DEFAULT_FILTERS.tax}
+              onChange={(v) => onChange({ tax: v as TaxFilter })}
+              options={taxOptions(taxName)}
+              className={selectClass}
+            />
+          )}
           <FilterSelect
             label="Ordenar"
             value={filters.sort}
@@ -134,7 +147,7 @@ export function FilterBar({ filters, onChange, onClear, categories, suppliers, s
             disabled={!active}
             aria-label="Limpiar filtros"
             title="Limpiar filtros"
-            className="col-span-2 sm:w-10 sm:px-0"
+            className={cn(!showTax && 'col-span-2', 'sm:w-10 sm:px-0')}
           >
             <span className="sm:hidden">Limpiar filtros</span>
           </Button>

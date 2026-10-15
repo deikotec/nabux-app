@@ -1,16 +1,24 @@
 import { useNavigate } from 'react-router';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, CircleCheck, CircleDashed, PackagePlus, ReceiptText, Rocket, ShoppingCart, UserPlus, Wallet } from 'lucide-react';
+import { ArrowRight, ArrowRightLeft, CircleCheck, CircleDashed, PackagePlus, ReceiptText, Rocket, ShoppingCart, UserPlus, Wallet } from 'lucide-react';
 import { DEFAULT_RECEIPT_FOOTER } from '@/config/app';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCash } from '@/contexts/CashContext';
+import { useFx } from '@/contexts/FxContext';
 import { useBusinessInvites, useClosedCashSessions, useMembers } from '@/hooks/data';
 import { Button, Card, ProgressBar } from '@/components/ui';
 import { firstName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Sale } from '@/types';
 
-const XL_COLS: Record<number, string> = { 1: 'xl:grid-cols-1', 2: 'xl:grid-cols-2', 3: 'xl:grid-cols-3', 4: 'xl:grid-cols-4', 5: 'xl:grid-cols-5' };
+const XL_COLS: Record<number, string> = {
+  1: 'xl:grid-cols-1',
+  2: 'xl:grid-cols-2',
+  3: 'xl:grid-cols-3',
+  4: 'xl:grid-cols-4',
+  5: 'xl:grid-cols-5',
+  6: 'xl:grid-cols-3'
+};
 
 interface Step {
   key: string;
@@ -20,14 +28,26 @@ interface Step {
   done: boolean;
   cta: string;
   action: () => void;
+  loading?: boolean;
 }
 
 /**
  * Checklist de arranque para negocios nuevos. Cada paso se marca con datos reales
  * y solo se muestran los pasos que el usuario puede realizar con sus permisos.
+ * En modo bimonetario incluye "Configura la tasa de cambio" (listo cuando hay tasa).
  */
-export function GettingStartedCard({ productCount, recentSales }: { productCount: number; recentSales: Sale[] }) {
+export function GettingStartedCard({
+  productCount,
+  recentSales,
+  onSetupRates
+}: {
+  productCount: number;
+  recentSales: Sale[];
+  /** Carga la tasa del día (desde internet o a mano). */
+  onSetupRates: () => void;
+}) {
   const { business, can, member } = useActiveBusiness();
+  const fx = useFx();
   const { session, requestOpen } = useCash();
   const navigate = useNavigate();
   const members = useMembers();
@@ -47,6 +67,17 @@ export function GettingStartedCard({ productCount, recentSales }: { productCount
       cta: 'Ir a inventario',
       action: () => navigate('/inventario'),
       allowed: can('inventory')
+    },
+    {
+      key: 'fx',
+      icon: ArrowRightLeft,
+      title: 'Configura la tasa de cambio',
+      description: 'Carga la tasa BCV del día (o tráela de internet) para cobrar en bolívares.',
+      done: !!fx.rate,
+      cta: 'Cargar tasa',
+      action: onSetupRates,
+      loading: fx.refreshing,
+      allowed: fx.enabled && fx.canEditRates
     },
     {
       key: 'cash',
@@ -144,7 +175,7 @@ export function GettingStartedCard({ productCount, recentSales }: { productCount
                 <p className="text-body-sm text-on-surface-variant">{s.description}</p>
               </div>
               {!s.done && (
-                <Button size="sm" variant={isNext ? 'primary' : 'soft'} iconRight={ArrowRight} onClick={s.action} className="self-start">
+                <Button size="sm" variant={isNext ? 'primary' : 'soft'} iconRight={ArrowRight} onClick={s.action} loading={s.loading} className="self-start">
                   {s.cta}
                 </Button>
               )}

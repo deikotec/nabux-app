@@ -15,10 +15,12 @@ import {
 } from 'lucide-react';
 import { Badge, ProductThumb, StockBadge, StockBar } from '@/components/ui';
 import { formatDate, formatNumber, formatPercent } from '@/lib/format';
-import { cn, marginPct, stockStatus } from '@/lib/utils';
+import { cn, stockStatus } from '@/lib/utils';
 import type { Product } from '@/types';
 import { ActionMenu, type ActionMenuItem } from './ActionMenu';
-import { MARGIN_CHIP, marginTone, type MoveType } from './helpers';
+import { LocalLine } from './FxBits';
+import { MARGIN_CHIP, marginTone, productMargin, type MoveType, type TaxCtx } from './helpers';
+import type { InventoryFx } from './useInventoryFx';
 
 /** Acciones disponibles sobre un producto (las implementa la página). */
 export interface ProductHandlers {
@@ -38,22 +40,51 @@ export interface RowContext {
   minMarginPct: number;
   locale: string;
   supplierOf: (p: Product) => string;
+  /** Equivalente en Bs de un monto en $ (null = una sola moneda o sin tasa: no se muestra). */
+  local: InventoryFx['local'];
+  /** IVA para márgenes sobre el precio sin impuesto (null = como siempre). */
+  tax: TaxCtx | null;
 }
 
-export function MarginChip({ product, minMarginPct, className }: { product: Product; minMarginPct: number; className?: string }) {
+export function MarginChip({ product, minMarginPct, tax, className }: { product: Product; minMarginPct: number; tax: TaxCtx | null; className?: string }) {
   const price = Number(product.salePrice) || 0;
   if (price <= 0) {
     return <span className={cn('inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 text-label-sm text-slate-500', className)}>Sin precio</span>;
   }
-  const pct = marginPct(Number(product.costPrice) || 0, price);
+  const pct = productMargin(product, tax);
   const tone = marginTone(pct, minMarginPct);
+  const basis = tax && tax.included && !product.taxExempt ? ` · calculado sobre el precio sin ${tax.name}` : '';
   return (
     <span
       className={cn('inline-flex rounded-md px-1.5 py-0.5 text-label-sm tnum', MARGIN_CHIP[tone], className)}
-      title={tone === 'good' ? 'Margen saludable' : tone === 'warn' ? `Por debajo del mínimo recomendado (${minMarginPct}%)` : 'Sin ganancia: el costo iguala o supera el precio'}
+      title={(tone === 'good' ? 'Margen saludable' : tone === 'warn' ? `Por debajo del mínimo recomendado (${minMarginPct}%)` : 'Sin ganancia: el costo iguala o supera el precio') + basis}
     >
       {formatPercent(pct, 1, true)}
     </span>
+  );
+}
+
+/** Precio de venta y costo en $; con modo bimonetario, su equivalente en Bs debajo de cada uno. */
+export function PriceStack({
+  product,
+  money,
+  local,
+  align = 'end',
+  className
+}: {
+  product: Product;
+  money: (n: number) => string;
+  local: InventoryFx['local'];
+  align?: 'start' | 'end';
+  className?: string;
+}) {
+  return (
+    <div className={cn('flex min-w-0 flex-col whitespace-nowrap', align === 'end' ? 'items-end text-right' : 'items-start', className)}>
+      <span className="max-w-full truncate text-label-lg text-on-surface tnum">{money(product.salePrice)}</span>
+      <LocalLine usd={product.salePrice} local={local} className="max-w-full truncate" />
+      <span className={cn('max-w-full truncate text-body-sm text-on-surface-variant tnum', local && 'mt-0.5')}>Costo: {money(product.costPrice)}</span>
+      <LocalLine usd={product.costPrice} local={local} className="max-w-full truncate text-on-surface-variant/80" />
+    </div>
   );
 }
 
@@ -98,6 +129,13 @@ export function ProductIdentity({ product, className }: { product: Product; clas
             <Badge size="xs" tone="neutral">
               Inactivo
             </Badge>
+          )}
+          {product.taxExempt && (
+            <span title="Exento de IVA" className="inline-flex">
+              <Badge size="xs" tone="info">
+                Exento
+              </Badge>
+            </span>
           )}
         </div>
         <div className="flex min-w-0 items-center gap-1.5 text-body-sm text-on-surface-variant">

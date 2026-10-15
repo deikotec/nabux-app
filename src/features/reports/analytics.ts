@@ -2,11 +2,11 @@
  * Agregaciones puras para Reportes & Analíticas.
  * Nada de React ni Firestore aquí: reciben arreglos ya cargados y devuelven estructuras listas para pintar.
  */
-import { PAYMENT_LABELS } from '@/config/app';
 import { addDays, dayKey, eachDay, startOfDay, startOfWeek, WEEKDAY_SHORT, type DateRange, type RangePreset } from '@/lib/dates';
 import { toDate } from '@/lib/format';
+import { salePayments } from '@/lib/payments';
 import { round2, stockStatus } from '@/lib/utils';
-import type { CashSession, PaymentMethod, Product, Sale, SaleItem, StockMovement } from '@/types';
+import type { CashSession, FxHistoryEntry, PaymentKind, PaymentMethodConfig, Product, RateSource, Sale, SaleItem, StockMovement } from '@/types';
 
 /* ------------------------------------------------------------------ */
 /* Utilidades generales                                                */
@@ -16,6 +16,28 @@ export const isCompleted = (s: Pick<Sale, 'status'>) => s.status === 'completed'
 export const isVoided = (s: Pick<Sale, 'status'>) => s.status === 'voided';
 
 const num = (v: unknown) => Number(v) || 0;
+
+/* ------------------------------------------------------------------ */
+/* Moneda local (modo bimonetario)                                     */
+/* ------------------------------------------------------------------ */
+
+type SaleFx = Pick<Sale, 'rate' | 'totalLocal' | 'total'>;
+
+/** Tasa (moneda local por 1 $) guardada en la venta. null en ventas antiguas o de una sola moneda. */
+export function saleRate(s: SaleFx): number | null {
+  const r = num(s.rate);
+  if (r > 0) return r;
+  const local = num(s.totalLocal);
+  const total = num(s.total);
+  return local > 0 && total > 0 ? local / total : null;
+}
+
+/** Total de la venta en moneda local a la tasa de ESA venta (nunca a la tasa actual); null si no tiene tasa. */
+export function saleTotalLocal(s: SaleFx): number | null {
+  if (typeof s.totalLocal === 'number' && Number.isFinite(s.totalLocal)) return s.totalLocal;
+  const r = saleRate(s);
+  return r ? num(s.total) * r : null;
+}
 
 /** Variación porcentual; null si no hay base de comparación. */
 export function pctChange(current: number, previous: number): number | null {
@@ -84,6 +106,32 @@ export interface SalesSummary {
   marginPct: number;
   voidedCount: number;
   voidedAmount: number;
+
+  /* ---- Moneda local: cada venta a SU tasa (suma de totalLocal), nunca a la tasa actual ---- */
+  /** Σ totalLocal de las ventas completadas que tienen tasa. */
+  revenueLocal: number;
+  /** Σ utilidad × tasa de cada venta. */
+  profitLocal: number;
+  /** Ventas completadas con / sin monto en moneda local. */
+  localCount: number;
+  localMissing: number;
+  /** Ingresos ($) de las ventas que sí tienen monto local (base de la tasa promedio). */
+  localRevenueBase: number;
+  /** Tasa promedio ponderada por venta del período (null si ninguna venta tiene tasa). */
+  avgRate: number | null;
+  avgTicketLocal: number;
+  /** Σ totalLocal de las anuladas (a su tasa). */
+  voidedAmountLocal: number;
+  voidedLocalMissing: number;
+
+  /* ---- IGTF (impuesto sobre pagos en divisas, aparte del total) ---- */
+  igtf: number;
+  igtfLocal: number;
+  /** Parte de las ventas cubierta con pagos que causaron IGTF ($). */
+  igtfBase: number;
+  igtfPayments: number;
+  /** Total cobrado a los clientes = ingresos + IGTF. */
+  amountDue: number;
 }
 
 export function summarizeSales(sales: Sale[]): SalesSummary {
@@ -101,12 +149,29 @@ export function summarizeSales(sales: Sale[]): SalesSummary {
     itemsPerTicket: 0,
     marginPct: 0,
     voidedCount: 0,
-    voidedAmount: 0
+    voidedAmount: 0,
+    revenueLocal: 0,
+    profitLocal: 0,
+    localCount: 0,
+    localMissing: 0,
+    localRevenueBase: 0,
+    avgRate: null,
+    avgTicketLocal: 0,
+    voidedAmountLocal: 0,
+    voidedLocalMissing: 0,
+    igtf: 0,
+    igtfLocal: 0,
+    igtfBase: 0,
+    igtfPayments: 0,
+    amountDue: 0
   };
   for (const sale of sales) {
     if (isVoided(sale)) {
       s.voidedCount += 1;
       s.voidedAmount += num(sale.total);
+      const local = saleTotalLocal(sale);
+      if (local === null) s.voidedLocalMissing += 1;
+      else s.voidedAmountLocal += local;
       continue;
     }
     if (!isCompleted(sale)) continue;
@@ -119,11 +184,56 @@ export function summarizeSales(sales: Sale[]): SalesSummary {
     s.units += num(sale.itemCount);
     s.maxTicket = Math.max(s.maxTicket, num(sale.total));
     s.count += 1;
+
+    const rate = saleRate(sale);
+    const local = saleTotalLocal(sale);
+    if (local === null || !rate) s.localMissing += 1;
+    else {
+      s.localCount += 1;
+      s.revenueLocal += local;
+      s.localRevenueBase += num(sale.total);
+      s.profitLocal += num(sale.profit) * rate;
+    }
+
+    let igtf = 0;
+    for (const p of salePayments(sale)) {
+      if (num(p.igtf) <= 0) continue;
+      igtf += num(p.igtf);
+      s.igtfBase += num(p.amountBase);
+      s.igtfPayments += 1;
+    }
+    const saleIgtf = sale.igtf != null ? num(sale.igtf) : igtf;
+    s.igtf += saleIgtf;
+    if (rate) s.igtfLocal += saleIgtf * rate;
   }
   s.avgTicket = s.count ? s.revenue / s.count : 0;
   s.itemsPerTicket = s.count ? s.units / s.count : 0;
   s.marginPct = safePct(s.profit, s.subtotal);
-  for (const k of ['revenue', 'subtotal', 'cost', 'profit', 'tax', 'discount', 'avgTicket', 'maxTicket', 'itemsPerTicket', 'voidedAmount'] as const) s[k] = round2(s[k]);
+  s.avgRate = s.localRevenueBase > 0 ? s.revenueLocal / s.localRevenueBase : null;
+  s.avgTicketLocal = s.localCount ? s.revenueLocal / s.localCount : 0;
+  s.amountDue = s.revenue + s.igtf;
+  for (const k of [
+    'revenue',
+    'subtotal',
+    'cost',
+    'profit',
+    'tax',
+    'discount',
+    'avgTicket',
+    'maxTicket',
+    'itemsPerTicket',
+    'voidedAmount',
+    'revenueLocal',
+    'profitLocal',
+    'localRevenueBase',
+    'avgTicketLocal',
+    'voidedAmountLocal',
+    'igtf',
+    'igtfLocal',
+    'igtfBase',
+    'amountDue'
+  ] as const)
+    s[k] = round2(s[k]);
   return s;
 }
 
@@ -155,10 +265,35 @@ export interface TimeBucket {
   voidedCount: number;
   voidedAmount: number;
   isCurrent: boolean;
+  /** Σ totalLocal de las ventas del bucket (cada una a su tasa). */
+  revenueLocal: number;
+  /** Σ utilidad × tasa de cada venta. */
+  profitLocal: number;
+  /** Ingresos ($) de las ventas con monto local (para la tasa promedio del bucket). */
+  localRevenueBase: number;
+  /** Ventas completadas sin tasa registrada (no entran en la vista en Bs). */
+  localMissing: number;
 }
 
 function emptyBucket(key: string, label: string, longLabel: string, start: Date, days: number, isCurrent: boolean): TimeBucket {
-  return { key, label, longLabel, start, days, revenue: 0, subtotal: 0, profit: 0, count: 0, voidedCount: 0, voidedAmount: 0, isCurrent };
+  return {
+    key,
+    label,
+    longLabel,
+    start,
+    days,
+    revenue: 0,
+    subtotal: 0,
+    profit: 0,
+    count: 0,
+    voidedCount: 0,
+    voidedAmount: 0,
+    isCurrent,
+    revenueLocal: 0,
+    profitLocal: 0,
+    localRevenueBase: 0,
+    localMissing: 0
+  };
 }
 
 function addSaleToBucket(b: TimeBucket, sale: Sale) {
@@ -170,6 +305,14 @@ function addSaleToBucket(b: TimeBucket, sale: Sale) {
     b.revenue += num(sale.total);
     b.subtotal += num(sale.subtotal);
     b.profit += num(sale.profit);
+    const rate = saleRate(sale);
+    const local = saleTotalLocal(sale);
+    if (local === null || !rate) b.localMissing += 1;
+    else {
+      b.revenueLocal += local;
+      b.profitLocal += num(sale.profit) * rate;
+      b.localRevenueBase += num(sale.total);
+    }
   }
 }
 
@@ -179,8 +322,16 @@ function finalize(buckets: TimeBucket[]): TimeBucket[] {
     revenue: round2(b.revenue),
     subtotal: round2(b.subtotal),
     profit: round2(b.profit),
-    voidedAmount: round2(b.voidedAmount)
+    voidedAmount: round2(b.voidedAmount),
+    revenueLocal: round2(b.revenueLocal),
+    profitLocal: round2(b.profitLocal),
+    localRevenueBase: round2(b.localRevenueBase)
   }));
+}
+
+/** Tasa promedio ponderada de un bucket (Bs por $) o null. */
+export function bucketAvgRate(b: Pick<TimeBucket, 'revenueLocal' | 'localRevenueBase'>): number | null {
+  return b.localRevenueBase > 0 ? b.revenueLocal / b.localRevenueBase : null;
 }
 
 const fmtDayShort = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' });
@@ -425,33 +576,221 @@ export function salesByCategory(stats: ProductStat[], limit = 7): CategoryStat[]
 /* Métodos de pago                                                     */
 /* ------------------------------------------------------------------ */
 
+/** Moneda de un pago: "base" = divisas ($), "local" = bolívares. */
+export type CurrencySide = 'base' | 'local';
+
 export interface PaymentStat {
-  method: PaymentMethod;
+  /** Id del método configurado (o legado: cash/card/transfer). */
+  method: string;
   label: string;
+  /** Moneda ISO del método ("USD", "VES"). */
+  currency: string;
+  side: CurrencySide;
+  kind: PaymentKind;
+  /** Neto recibido en la moneda del método: lo entregado (incluye IGTF) menos el vuelto dado con este método. */
   amount: number;
+  /** Bruto entregado por los clientes con este método (su moneda). */
+  received: number;
+  /** Vuelto entregado con este método (su moneda). */
+  changeOut: number;
+  /** Parte de las ventas que cubrió este método ($, sin IGTF ni vuelto). Base del % y del donut. */
+  amountBase: number;
+  /** Neto recibido expresado en $ (los pagos en Bs a la tasa de cada venta). */
+  equivBase: number;
+  /** Neto recibido expresado en moneda local (los pagos en $ a la tasa de cada venta). */
+  equivLocal: number;
+  /** IGTF cobrado con este método ($). */
+  igtf: number;
+  /** Pagos registrados con el método. */
   count: number;
+  /** Ventas distintas en las que se usó. */
+  tickets: number;
+  /** % de las ventas cubierto por el método. */
   share: number;
+  /** Movimientos sin tasa registrada (no se pudieron expresar en la otra moneda). */
+  unconverted: number;
 }
 
-const METHOD_ORDER: PaymentMethod[] = ['cash', 'card', 'transfer'];
+export interface PaymentBreakdownOptions {
+  /** Formas de pago configuradas del negocio (todas, incluidas inactivas). */
+  methods: PaymentMethodConfig[];
+  baseCurrency: string;
+  /** Moneda local (ej. "VES"); sirve para clasificar pagos aunque el modo bimonetario esté apagado hoy. */
+  localCurrency?: string | null;
+  /** Modo bimonetario activo: ordena por monto y oculta métodos sin movimiento. */
+  dual: boolean;
+}
 
-export function salesByPaymentMethod(sales: Sale[]): PaymentStat[] {
-  const acc = new Map<PaymentMethod, { amount: number; count: number }>(METHOD_ORDER.map((m) => [m, { amount: 0, count: 0 }]));
-  let total = 0;
+type PaymentAcc = Omit<PaymentStat, 'share' | 'tickets'> & { saleIds: Set<string>; order: number };
+
+/**
+ * Cobros por forma de pago. Las ventas mixtas se reparten por pago (no por venta) y las antiguas
+ * se leen con `salePayments`. Los vueltos se descuentan del método con que se entregaron.
+ */
+export function salesByPaymentMethod(sales: Sale[], opts: PaymentBreakdownOptions): PaymentStat[] {
+  const config = new Map(opts.methods.map((m, i) => [m.id, { m, i }]));
+  const local = opts.localCurrency || null;
+  const sideOf = (currency: string): CurrencySide => (local && currency === local ? 'local' : 'base');
+  const configCurrency = (m: PaymentMethodConfig | undefined) => (m?.currency === 'local' && local ? local : opts.baseCurrency);
+  const acc = new Map<string, PaymentAcc>();
+
+  const touch = (id: string, seed: { label: string; currency: string; kind: PaymentKind }): PaymentAcc => {
+    let a = acc.get(id);
+    if (!a) {
+      const cfg = config.get(id);
+      a = {
+        method: id,
+        label: cfg?.m.label ?? seed.label,
+        currency: seed.currency,
+        side: sideOf(seed.currency),
+        kind: cfg?.m.kind ?? seed.kind,
+        amount: 0,
+        received: 0,
+        changeOut: 0,
+        amountBase: 0,
+        equivBase: 0,
+        equivLocal: 0,
+        igtf: 0,
+        count: 0,
+        unconverted: 0,
+        saleIds: new Set(),
+        order: cfg ? cfg.i : Number.MAX_SAFE_INTEGER
+      };
+      acc.set(id, a);
+    }
+    return a;
+  };
+
+  /** Suma un monto (en la moneda del método) y su equivalente en la otra moneda a la tasa de la venta. */
+  const addEquiv = (a: PaymentAcc, amount: number, rate: number | null, fallbackBase: number) => {
+    if (a.side === 'local') {
+      a.equivLocal += amount;
+      if (rate) a.equivBase += amount / rate;
+      else {
+        a.equivBase += fallbackBase;
+        a.unconverted += 1;
+      }
+    } else {
+      a.equivBase += amount;
+      if (rate) a.equivLocal += amount * rate;
+      else if (local) a.unconverted += 1;
+    }
+  };
+
   for (const sale of sales) {
     if (!isCompleted(sale)) continue;
-    const m = acc.get(sale.paymentMethod) ?? { amount: 0, count: 0 };
-    m.amount += num(sale.total);
-    m.count += 1;
-    acc.set(sale.paymentMethod, m);
-    total += num(sale.total);
+    const rate = saleRate(sale);
+    for (const p of salePayments(sale)) {
+      const currency = p.currency || opts.baseCurrency;
+      const a = touch(p.methodId, { label: p.label, currency, kind: p.kind ?? 'other' });
+      const amount = num(p.amount);
+      a.received += amount;
+      a.amount += amount;
+      a.amountBase += num(p.amountBase);
+      a.igtf += num(p.igtf);
+      a.count += 1;
+      a.saleIds.add(sale.id);
+      addEquiv(a, amount, rate, num(p.amountBase) + num(p.igtf));
+    }
+    const change = num(sale.changeAmount);
+    if (sale.changeMethodId && change > 0) {
+      const cfg = config.get(sale.changeMethodId)?.m;
+      const a = touch(sale.changeMethodId, {
+        label: cfg?.label ?? sale.changeMethodId,
+        currency: sale.changeCurrency || configCurrency(cfg),
+        kind: cfg?.kind ?? 'cash'
+      });
+      a.changeOut += change;
+      a.amount -= change;
+      addEquiv(a, -change, rate, -num(sale.change));
+    }
   }
-  return Array.from(acc.entries()).map(([method, v]) => ({
-    method,
-    label: PAYMENT_LABELS[method] ?? method,
-    amount: round2(v.amount),
-    count: v.count,
-    share: safePct(v.amount, total)
+
+  // Formas de pago activas sin movimiento: en una sola moneda se listan como antes (con 0).
+  for (const [id, { m }] of config) {
+    if (!m.active || acc.has(id)) continue;
+    if (!opts.dual && m.currency !== 'base') continue;
+    touch(id, { label: m.label, currency: configCurrency(m), kind: m.kind });
+  }
+
+  const total = Array.from(acc.values()).reduce((s, a) => s + Math.max(0, a.amountBase), 0);
+  const stats: (PaymentStat & { order: number })[] = Array.from(acc.values()).map(({ saleIds, ...a }) => ({
+    ...a,
+    amount: round2(a.amount),
+    received: round2(a.received),
+    changeOut: round2(a.changeOut),
+    amountBase: round2(a.amountBase),
+    equivBase: round2(a.equivBase),
+    equivLocal: round2(a.equivLocal),
+    igtf: round2(a.igtf),
+    tickets: saleIds.size,
+    share: safePct(Math.max(0, a.amountBase), total)
+  }));
+  stats.sort((a, b) =>
+    opts.dual ? b.amountBase - a.amountBase || b.equivBase - a.equivBase || a.order - b.order : a.order - b.order || b.amountBase - a.amountBase
+  );
+  return stats.map(({ order: _order, ...s }) => s);
+}
+
+/** ¿El método tuvo movimiento en el período? */
+export const hasActivity = (s: Pick<PaymentStat, 'count' | 'changeOut'>) => s.count > 0 || s.changeOut > 0;
+
+export interface CurrencyGroup {
+  side: CurrencySide;
+  currency: string;
+  /** Neto recibido en la moneda del grupo. */
+  amount: number;
+  equivBase: number;
+  equivLocal: number;
+  /** Parte de las ventas cubierta ($). */
+  amountBase: number;
+  igtf: number;
+  count: number;
+  changeOut: number;
+  share: number;
+  unconverted: number;
+  methods: PaymentStat[];
+}
+
+/** Agrupa las formas de pago por moneda: cuánto entró en divisas y cuánto en moneda local. */
+export function paymentsByCurrency(stats: PaymentStat[], currencies: { base: string; local: string }): CurrencyGroup[] {
+  const groups: CurrencyGroup[] = (['base', 'local'] as const).map((side) => ({
+    side,
+    currency: currencies[side],
+    amount: 0,
+    equivBase: 0,
+    equivLocal: 0,
+    amountBase: 0,
+    igtf: 0,
+    count: 0,
+    changeOut: 0,
+    share: 0,
+    unconverted: 0,
+    methods: []
+  }));
+  for (const s of stats) {
+    const g = groups[s.side === 'local' ? 1 : 0];
+    if (!hasActivity(s)) continue;
+    g.methods.push(s);
+    g.amount += s.amount;
+    g.equivBase += s.equivBase;
+    g.equivLocal += s.equivLocal;
+    g.amountBase += s.amountBase;
+    g.igtf += s.igtf;
+    g.count += s.count;
+    g.changeOut += s.changeOut;
+    g.unconverted += s.unconverted;
+  }
+  const total = groups.reduce((a, g) => a + Math.max(0, g.amountBase), 0);
+  return groups.map((g) => ({
+    ...g,
+    amount: round2(g.amount),
+    equivBase: round2(g.equivBase),
+    equivLocal: round2(g.equivLocal),
+    amountBase: round2(g.amountBase),
+    igtf: round2(g.igtf),
+    changeOut: round2(g.changeOut),
+    share: safePct(Math.max(0, g.amountBase), total)
   }));
 }
 
@@ -605,14 +944,27 @@ export interface ShrinkSummary {
   units: number;
   count: number;
   lines: ShrinkLine[];
+  /** Valor en moneda local (null si no se pidió conversión). */
+  amountLocal: number | null;
+  /** Salidas que no se pudieron convertir (sin tasa). */
+  localMissing: number;
 }
 
-/** Valoriza las salidas tipo "out" al costo registrado en el movimiento o, si falta, al costo actual del producto. */
-export function shrinkFromMovements(movements: StockMovement[], productsById: Map<string, Product>): ShrinkSummary {
+/**
+ * Valoriza las salidas tipo "out" al costo registrado en el movimiento o, si falta, al costo actual del producto.
+ * `toLocal(monto$, fecha)` opcional: convierte cada salida a moneda local (ej. a la tasa del día en que se registró).
+ */
+export function shrinkFromMovements(
+  movements: StockMovement[],
+  productsById: Map<string, Product>,
+  toLocal?: (amountBase: number, date: Date | null) => number | null
+): ShrinkSummary {
   const map = new Map<string, ShrinkLine>();
   let amount = 0;
   let units = 0;
   let count = 0;
+  let amountLocal = 0;
+  let localMissing = 0;
   for (const m of movements) {
     if (m.type !== 'out') continue;
     const qty = Math.abs(num(m.qty));
@@ -622,6 +974,11 @@ export function shrinkFromMovements(movements: StockMovement[], productsById: Ma
     amount += value;
     units += qty;
     count += 1;
+    if (toLocal) {
+      const v = toLocal(value, toDate(m.createdAt));
+      if (v === null) localMissing += 1;
+      else amountLocal += v;
+    }
     const line = map.get(m.productId) ?? { productId: m.productId, name: product?.name ?? m.productName, units: 0, amount: 0 };
     line.units += qty;
     line.amount += value;
@@ -633,7 +990,9 @@ export function shrinkFromMovements(movements: StockMovement[], productsById: Ma
     count,
     lines: Array.from(map.values())
       .map((l) => ({ ...l, amount: round2(l.amount), units: round2(l.units) }))
-      .sort((a, b) => b.amount - a.amount)
+      .sort((a, b) => b.amount - a.amount),
+    amountLocal: toLocal ? round2(amountLocal) : null,
+    localMissing
   };
 }
 
@@ -651,19 +1010,82 @@ export function lossLevel(loss: number, revenue: number): { pct: number; level: 
 /* Cortes de caja (Z)                                                  */
 /* ------------------------------------------------------------------ */
 
-export type AuditStatus = 'balanced' | 'short' | 'over';
+/** `mixed`: faltante en una moneda y sobrante en la otra (ej. vuelto dado en otra moneda). */
+export type AuditStatus = 'balanced' | 'short' | 'over' | 'mixed';
 
-export function auditStatus(difference: number | null | undefined): AuditStatus {
+export function auditStatus(difference: number | null | undefined): Exclude<AuditStatus, 'mixed'> {
   const d = round2(num(difference));
   if (Math.abs(d) < 0.01) return 'balanced';
   return d < 0 ? 'short' : 'over';
 }
 
+/** ¿El corte se contó en dos monedas? (cortes antiguos: solo moneda base). */
+export function sessionHasLocal(s: Pick<CashSession, 'localCurrency' | 'expectedCashLocal' | 'declaredCashLocal' | 'differenceLocal'>): boolean {
+  return s.differenceLocal != null || s.expectedCashLocal != null || s.declaredCashLocal != null;
+}
+
+/** Estado de auditoría considerando la diferencia en $ y, si existe, la de moneda local. */
+export function sessionAuditStatus(s: Pick<CashSession, 'difference' | 'differenceLocal'>): AuditStatus {
+  const a = auditStatus(s.difference);
+  const b = s.differenceLocal == null ? 'balanced' : auditStatus(s.differenceLocal);
+  if (a === b) return a;
+  if (a === 'balanced') return b;
+  if (b === 'balanced') return a;
+  return 'mixed';
+}
+
 export const AUDIT_LABEL: Record<AuditStatus, string> = {
   balanced: 'Cuadrada',
   short: 'Faltante',
-  over: 'Sobrante'
+  over: 'Sobrante',
+  mixed: 'Descuadre mixto'
 };
+
+export interface SessionMethodLine {
+  id: string;
+  label: string;
+  currency: string;
+  kind: PaymentKind | null;
+  /** Neto en la moneda del método. */
+  amount: number;
+  /** Parte de las ventas cubierta ($). */
+  amountBase: number;
+  count: number;
+}
+
+const LEGACY_SESSION_METHODS = [
+  { id: 'cash', label: 'Efectivo', kind: 'cash' },
+  { id: 'card', label: 'Tarjeta', kind: 'card' },
+  { id: 'transfer', label: 'Transferencia / QR', kind: 'transfer' }
+] as const;
+
+/** Desglose de un corte por forma de pago (`totals.byMethod`, o cash/card/transfer en cortes antiguos). */
+export function sessionMethodBreakdown(s: Pick<CashSession, 'totals'>, baseCurrency: string): SessionMethodLine[] {
+  const t = s.totals;
+  if (!t) return [];
+  if (t.byMethod && Object.keys(t.byMethod).length) {
+    return Object.entries(t.byMethod)
+      .map(([id, m]) => ({
+        id,
+        label: m.label || id,
+        currency: m.currency || baseCurrency,
+        kind: m.kind ?? null,
+        amount: round2(num(m.amount)),
+        amountBase: round2(num(m.amountBase)),
+        count: num(m.count)
+      }))
+      .sort((a, b) => b.amountBase - a.amountBase || b.count - a.count);
+  }
+  return LEGACY_SESSION_METHODS.map((m) => ({
+    id: m.id,
+    label: m.label,
+    currency: baseCurrency,
+    kind: m.kind,
+    amount: round2(num(t[m.id])),
+    amountBase: round2(num(t[m.id])),
+    count: 0
+  })).filter((m) => m.amount !== 0);
+}
 
 /** Folio corto legible para un corte: Z-AB12CD. */
 export function shortFolio(id: string): string {
@@ -746,4 +1168,149 @@ export function inventoryHealth(products: Product[], soldIds: Set<string>, limit
     idleValue: round2(idleValue),
     idleShare: safePct(idleValue, costValue)
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Tasa de cambio (historial)                                          */
+/* ------------------------------------------------------------------ */
+
+export const RATE_SOURCES: RateSource[] = ['bcv', 'parallel', 'custom'];
+
+export interface RatePoint {
+  key: string;
+  label: string;
+  longLabel: string;
+  date: Date;
+  bcv: number | null;
+  parallel: number | null;
+  custom: number | null;
+  /** Actualizaciones registradas en ese punto (0 = se arrastra el último valor conocido). */
+  updates: number;
+  carried: boolean;
+}
+
+const positive = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+const entryValues = (e: Pick<FxHistoryEntry, 'bcv' | 'parallel' | 'custom'>) => ({ bcv: positive(e.bcv), parallel: positive(e.parallel), custom: positive(e.custom) });
+
+const entryTime = (e: FxHistoryEntry) => toDate(e.createdAt)?.getTime() ?? 0;
+
+/**
+ * Tasa por día del rango: el último valor registrado cada día. Los días sin cambios arrastran el último
+ * valor conocido (el BCV no publica fines de semana); `baseline` es el último registro previo al rango.
+ */
+export function dailyRateSeries(entries: FxHistoryEntry[], range: DateRange, baseline: FxHistoryEntry | null, now = new Date()): RatePoint[] {
+  const byDay = new Map<string, { last: FxHistoryEntry; count: number }>();
+  for (const e of [...entries].sort((a, b) => entryTime(a) - entryTime(b))) {
+    const d = toDate(e.createdAt);
+    if (!d) continue;
+    const key = dayKey(d);
+    const hit = byDay.get(key);
+    byDay.set(key, { last: e, count: (hit?.count ?? 0) + 1 });
+  }
+  const end = range.to < now ? range.to : now;
+  if (end < range.from) return [];
+  const today = dayKey(now);
+  let cur = baseline ? entryValues(baseline) : null;
+  return eachDay(range.from, end).map((d) => {
+    const key = dayKey(d);
+    const hit = byDay.get(key);
+    if (hit) cur = entryValues(hit.last);
+    return {
+      key,
+      label: key === today ? 'Hoy' : fmtDayShort.format(d),
+      longLabel: fmtDayLong.format(d),
+      date: d,
+      bcv: cur?.bcv ?? null,
+      parallel: cur?.parallel ?? null,
+      custom: cur?.custom ?? null,
+      updates: hit?.count ?? 0,
+      carried: !hit
+    };
+  });
+}
+
+const fmtHm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+/** Para un solo día: un punto por actualización, precedido por la tasa con que abrió el día. */
+export function intradayRateSeries(entries: FxHistoryEntry[], baseline: FxHistoryEntry | null): RatePoint[] {
+  const points: RatePoint[] = [];
+  if (baseline) {
+    const d = toDate(baseline.createdAt) ?? new Date(0);
+    points.push({ key: 'base', label: 'Inicio', longLabel: `Vigente desde el ${fmtDayLong.format(d)}, ${fmtHm(d)}`, date: d, ...entryValues(baseline), updates: 0, carried: true });
+  }
+  for (const e of [...entries].sort((a, b) => entryTime(a) - entryTime(b))) {
+    const d = toDate(e.createdAt);
+    if (!d) continue;
+    const who = e.source === 'auto' ? 'automática' : e.userName ? `manual · ${e.userName}` : 'manual';
+    points.push({ key: e.id, label: fmtHm(d), longLabel: `${fmtHm(d)} · ${who}`, date: d, ...entryValues(e), updates: 1, carried: false });
+  }
+  return points;
+}
+
+export interface RateSeriesSummary {
+  source: RateSource;
+  /** Valor al inicio del período (o el primero conocido). */
+  first: number | null;
+  last: number | null;
+  min: number | null;
+  max: number | null;
+  /** Variación % del período. */
+  changePct: number | null;
+}
+
+export interface RateSummary {
+  series: Record<RateSource, RateSeriesSummary>;
+  /** Fuentes con al menos un valor en el período. */
+  available: RateSource[];
+  /** Brecha paralelo vs BCV en % (al cierre, promedio y al inicio del período). */
+  gapNow: number | null;
+  gapAvg: number | null;
+  gapFirst: number | null;
+  updates: number;
+}
+
+/** Brecha del paralelo sobre el BCV, en %. */
+export function rateGap(bcv: number | null | undefined, parallel: number | null | undefined): number | null {
+  return bcv && parallel ? ((parallel - bcv) / bcv) * 100 : null;
+}
+
+export function summarizeRates(points: RatePoint[]): RateSummary {
+  const series = {} as Record<RateSource, RateSeriesSummary>;
+  for (const source of RATE_SOURCES) {
+    const values = points.map((p) => p[source]).filter((v): v is number => v !== null);
+    const first = values[0] ?? null;
+    const last = values.length ? values[values.length - 1] : null;
+    series[source] = {
+      source,
+      first,
+      last,
+      min: values.length ? Math.min(...values) : null,
+      max: values.length ? Math.max(...values) : null,
+      changePct: first !== null && last !== null ? pctChange(last, first) : null
+    };
+  }
+  const gaps = points.map((p) => rateGap(p.bcv, p.parallel)).filter((v): v is number => v !== null);
+  return {
+    series,
+    available: RATE_SOURCES.filter((s) => series[s].last !== null),
+    gapNow: gaps.length ? gaps[gaps.length - 1] : null,
+    gapAvg: gaps.length ? gaps.reduce((a, v) => a + v, 0) / gaps.length : null,
+    gapFirst: gaps[0] ?? null,
+    updates: points.reduce((a, p) => a + p.updates, 0)
+  };
+}
+
+/** Tasa efectiva de un punto según la fuente del POS (si la fuente no tiene valor, cae a BCV). */
+export function pointRate(p: Pick<RatePoint, RateSource>, source: RateSource): number | null {
+  return p[source] ?? p.bcv ?? null;
+}
+
+/** Devuelve la tasa (Bs por $) vigente cada día del rango según la fuente del POS; null fuera del rango. */
+export function rateResolver(daily: RatePoint[], source: RateSource): (date: Date | null) => number | null {
+  const map = new Map(daily.map((p) => [p.key, pointRate(p, source)]));
+  return (date) => (date ? (map.get(dayKey(date)) ?? null) : null);
 }

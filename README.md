@@ -16,6 +16,18 @@ Aplicación web para que cualquier persona cree su cuenta, registre su negocio y
 | **Personal** | Invitaciones por correo con rol y permisos, suspensión/baja, matriz de roles y **bitácora de auditoría inmutable**. |
 | **Configuración** | Datos del negocio y logo, impuestos y pie de ticket con vista previa, reglas de inventario, categorías, proveedores y consola de prueba del lector. |
 
+## Venezuela: modo bimonetario (USD + Bs)
+
+Al crear el negocio elige **"Venezuela · Dólar + Bolívar (bimonetario)"** (o actívalo en *Configuración → Moneda y tasas*):
+
+- **Precios y costos en dólares**, mostrados y cobrados también en bolívares a la tasa del día.
+- **Tasas**: BCV (oficial), paralelo y tasa propia; eliges cuál usa el POS. Se actualizan solas desde [ve.dolarapi.com](https://ve.dolarapi.com) o a mano, con historial. Cada venta guarda la tasa con la que se cobró.
+- **Formas de pago configurables**: efectivo $, efectivo Bs, pago móvil, punto de venta, transferencia, Zelle, Binance/USDT, Biopago, Cashea… con número de referencia cuando aplica.
+- **Pagos mixtos** (ej. $10 en efectivo + resto por pago móvil) y **vuelto** en $, Bs o pago móvil.
+- **IGTF** (3 %, configurable) sobre la parte pagada en divisas, e **IVA 16 %** con productos **exentos**.
+- **Caja en dos monedas**: fondo inicial y corte de efectivo en $ y en Bs; los pagos electrónicos se totalizan por método para conciliar con el banco.
+- **Ajuste masivo de precios** por porcentaje (inflación / cambio de proveedor).
+
 ## Stack
 
 - Vite + React 19 + TypeScript + Tailwind CSS 4

@@ -9,6 +9,11 @@ interface PosKpisProps {
   todayLoading: boolean;
   cashInDrawer: number | null;
   openingFloat: number | null;
+  /** Efectivo y fondo en moneda local (Bs) si la caja es bimonetaria. */
+  cashInDrawerLocal?: number | null;
+  openingFloatLocal?: number | null;
+  /** Formatea un monto ya expresado en moneda local. */
+  formatLocal?: (n: number) => string;
   cashLoading: boolean;
   heldCount: number;
   money: (n: number) => string;
@@ -23,12 +28,16 @@ export function PosKpis({
   todayLoading,
   cashInDrawer,
   openingFloat,
+  cashInDrawerLocal = null,
+  openingFloatLocal = null,
+  formatLocal,
   cashLoading,
   heldCount,
   money,
   onCashClick,
   onHeldClick
 }: PosKpisProps) {
+  const dualCash = cashInDrawer !== null && cashInDrawerLocal !== null && !!formatLocal;
   return (
     <div className="grid grid-cols-1 gap-2 @xl:grid-cols-3 sm:gap-3">
       <MiniKpi
@@ -45,7 +54,14 @@ export function PosKpis({
         label="Efectivo en caja"
         loading={cashInDrawer !== null && cashLoading}
         value={cashInDrawer !== null ? money(cashInDrawer) : 'Caja cerrada'}
-        sub={cashInDrawer !== null ? `Fondo inicial ${money(openingFloat ?? 0)}` : 'Toca para abrir caja'}
+        value2={dualCash ? formatLocal(cashInDrawerLocal) : undefined}
+        sub={
+          cashInDrawer === null
+            ? 'Toca para abrir caja'
+            : dualCash
+              ? `Fondo ${money(openingFloat ?? 0)} · ${formatLocal(openingFloatLocal ?? 0)}`
+              : `Fondo inicial ${money(openingFloat ?? 0)}`
+        }
         onClick={onCashClick}
         actionLabel={cashInDrawer !== null ? 'Hacer corte de caja' : 'Abrir caja'}
       />
@@ -67,6 +83,7 @@ function MiniKpi({
   tone,
   label,
   value,
+  value2,
   sub,
   loading,
   onClick,
@@ -76,6 +93,8 @@ function MiniKpi({
   tone: string;
   label: string;
   value: ReactNode;
+  /** Segundo valor (otra moneda), con el mismo peso visual. */
+  value2?: ReactNode;
   sub?: ReactNode;
   loading?: boolean;
   onClick?: () => void;
@@ -91,9 +110,12 @@ function MiniKpi({
         {loading ? (
           <span className="mt-1 h-5 w-24 animate-pulse rounded bg-slate-100" />
         ) : (
-          <span className="truncate text-headline-sm text-on-surface tnum">{value}</span>
+          <>
+            <span className="truncate text-headline-sm text-on-surface tnum">{value}</span>
+            {value2 && <span className="truncate text-headline-sm text-secondary tnum">{value2}</span>}
+          </>
         )}
-        {sub && <span className="truncate text-body-sm text-on-surface-variant tnum">{sub}</span>}
+        {sub && <span className="text-body-sm leading-tight text-pretty text-on-surface-variant tnum">{sub}</span>}
       </div>
     </>
   );

@@ -3,7 +3,7 @@ import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Avatar, Skeleton, Table, TD, TH, THead, TR } from '@/components/ui';
 import type { Sale } from '@/types';
-import { OfflineBadge, PaymentBadge, SaleStatusBadge } from './SaleBadges';
+import { OfflineBadge, PaymentBadge, PaymentDetail, SaleLocalAmount, SaleStatusBadge } from './SaleBadges';
 import { formatClock, formatQty, saleTime, summarizeItems } from './saleUtils';
 
 interface SalesListProps {
@@ -18,9 +18,9 @@ const DEFAULT_CUSTOMER = 'Cliente mostrador';
 
 /*
  * La tabla se adapta al ancho de su contenedor (container queries):
- *  - < 52rem: método de pago solo con ícono.
+ *  - < 52rem: método de pago solo con ícono (sin detalle de pagos mixtos ni referencia).
  *  - < 60rem: el cajero se muestra bajo la fecha.
- *  - < 70rem: el cliente se muestra bajo el folio.
+ *  - < 80rem: el cliente se muestra bajo el folio.
  * En móvil (< md) se usa una lista de tarjetas.
  */
 export function SalesList({ rows, loading, showCashier, money, onOpen }: SalesListProps) {
@@ -32,7 +32,7 @@ export function SalesList({ rows, loading, showCashier, money, onOpen }: SalesLi
           <THead>
             <TH>Folio</TH>
             <TH>Fecha y hora</TH>
-            <TH className="hidden @min-[70rem]:table-cell">Cliente</TH>
+            <TH className="hidden @min-[80rem]:table-cell">Cliente</TH>
             {showCashier && <TH className="hidden @min-[60rem]:table-cell">Cajero</TH>}
             <TH>Artículos</TH>
             <TH>Método</TH>
@@ -61,7 +61,7 @@ export function SalesList({ rows, loading, showCashier, money, onOpen }: SalesLi
                         <span className="text-data-mono font-bold whitespace-nowrap tnum">{s.folio}</span>
                       </button>
                       {customer !== DEFAULT_CUSTOMER && (
-                        <span className="block max-w-36 truncate pl-[26px] text-body-sm text-on-surface-variant @min-[70rem]:hidden" title={customer}>
+                        <span className="block max-w-36 truncate pl-[26px] text-body-sm text-on-surface-variant @min-[80rem]:hidden" title={customer}>
                           {customer}
                         </span>
                       )}
@@ -77,7 +77,7 @@ export function SalesList({ rows, loading, showCashier, money, onOpen }: SalesLi
                       </div>
                     )}
                   </TD>
-                  <TD className="hidden @min-[70rem]:table-cell">
+                  <TD className="hidden @min-[80rem]:table-cell">
                     <span className="block max-w-40 truncate" title={customer}>
                       {customer}
                     </span>
@@ -97,10 +97,14 @@ export function SalesList({ rows, loading, showCashier, money, onOpen }: SalesLi
                     <p className="text-body-sm text-on-surface-variant tnum">{formatQty(Number(s.itemCount) || 0)} art.</p>
                   </TD>
                   <TD>
-                    <PaymentBadge method={s.paymentMethod} compactBelow="52rem" />
+                    <PaymentBadge sale={s} compactBelow="52rem" />
+                    <div className="hidden @min-[52rem]:block">
+                      <PaymentDetail sale={s} className="mt-1" />
+                    </div>
                   </TD>
                   <TD align="right" className={cn('font-bold whitespace-nowrap', voided ? 'text-on-surface-variant line-through' : 'text-on-surface')}>
                     {money(s.total)}
+                    <SaleLocalAmount sale={s} />
                   </TD>
                   <TD align="center">
                     <SaleStatusBadge status={s.status} />
@@ -141,9 +145,15 @@ export function SalesList({ rows, loading, showCashier, money, onOpen }: SalesLi
                   {s.customerName && s.customerName !== DEFAULT_CUSTOMER ? ` · ${s.customerName}` : ''}
                   {showCashier ? ` · ${s.cashierName}` : ''}
                 </span>
-                <span className="flex items-center justify-between gap-2">
-                  <PaymentBadge method={s.paymentMethod} />
-                  <span className={cn('text-headline-sm tnum', voided ? 'text-on-surface-variant line-through' : 'text-on-surface')}>{money(s.total)}</span>
+                <span className="flex items-start justify-between gap-3">
+                  <span className="flex min-w-0 flex-col items-start gap-1">
+                    <PaymentBadge sale={s} />
+                    <PaymentDetail sale={s} className="max-w-full" />
+                  </span>
+                  <span className={cn('shrink-0 text-right', voided && 'line-through')}>
+                    <span className={cn('block text-headline-sm tnum', voided ? 'text-on-surface-variant' : 'text-on-surface')}>{money(s.total)}</span>
+                    <SaleLocalAmount sale={s} />
+                  </span>
                 </span>
               </button>
             </li>

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { BUSINESS_TYPES, CURRENCIES, DEFAULT_CATEGORIES_BY_TYPE, ROLE_LABELS } from '@/config/app';
+import { BUSINESS_TYPES, CURRENCIES, currencyOptionBase, DEFAULT_CATEGORIES_BY_TYPE, DEFAULT_FX_SETTINGS, ROLE_LABELS, VE_PAYMENT_METHODS } from '@/config/app';
 import { uploadImage } from '@/lib/image';
 import { cn, errorMessage } from '@/lib/utils';
 import { createBusiness, updateBusiness } from '@/services/business';
@@ -55,7 +55,17 @@ export default function OnboardingPage() {
 
   useEffect(loadInvites, [user?.email]);
 
-  if (hasBusinesses && !creatingAnother && invites !== null && invites.length === 0) return <Navigate to="/" replace />;
+  // Negocio recién creado / unido: se entra al panel cuando el servidor ya confirmó la membresía
+  // (si se navega antes, Firestore aún no reconoce el acceso).
+  const [pendingBid, setPendingBid] = useState<string | null>(null);
+  useEffect(() => {
+    if (pendingBid && profile?.businessIds?.includes(pendingBid)) {
+      switchBusiness(pendingBid);
+      navigate('/', { replace: true });
+    }
+  }, [pendingBid, profile?.businessIds, switchBusiness, navigate]);
+
+  if (hasBusinesses && !creatingAnother && !pendingBid && invites !== null && invites.length === 0) return <Navigate to="/" replace />;
 
   const verified = !!user?.emailVerified;
 
@@ -70,12 +80,10 @@ export default function OnboardingPage() {
         displayName: profile?.displayName || user.displayName || inv.displayName || 'Usuario',
         photoURL: user.photoURL
       });
-      switchBusiness(inv.businessId);
       toast.success(`Te uniste a ${inv.businessName}`);
-      navigate('/');
+      setPendingBid(inv.businessId);
     } catch (e) {
       toast.error(errorMessage(e));
-    } finally {
       setBusyInvite(null);
     }
   };
@@ -201,8 +209,7 @@ export default function OnboardingPage() {
 
         <CreateBusinessWizard
           onCreated={(bid) => {
-            switchBusiness(bid);
-            navigate('/');
+            setPendingBid(bid);
           }}
         />
       </main>
@@ -223,7 +230,7 @@ function CreateBusinessWizard({ onCreated }: { onCreated: (bid: string) => void 
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
 
-  const [currency, setCurrency] = useState('MXN');
+  const [currency, setCurrency] = useState('VES');
   const cur = useMemo(() => CURRENCIES.find((c) => c.code === currency) ?? CURRENCIES[0], [currency]);
   const [taxRate, setTaxRate] = useState<number | ''>(cur.taxRate);
   const [taxName, setTaxName] = useState(cur.taxName);
@@ -262,15 +269,21 @@ function CreateBusinessWizard({ onCreated }: { onCreated: (bid: string) => void 
         {
           name,
           businessType,
-          currency: cur.code,
-          locale: cur.locale,
+          ...currencyOptionBase(cur),
           taxRate: Number(taxRate) || 0,
           taxName: taxName.trim() || 'IVA',
           pricesIncludeTax,
           categories: categories.length ? categories : ['General'],
           address,
           phone,
-          taxId
+          taxId,
+          ...(cur.baseCurrency
+            ? {
+                country: cur.country,
+                fx: { ...DEFAULT_FX_SETTINGS, enabled: true, localCurrency: cur.code, localLocale: cur.locale },
+                paymentMethods: VE_PAYMENT_METHODS
+              }
+            : {})
         }
       );
       if (logo) {
@@ -344,9 +357,20 @@ function CreateBusinessWizard({ onCreated }: { onCreated: (bid: string) => void 
 
         {step === 2 && (
           <>
-            <Field label="Moneda" required>
+            <Field label="País y moneda" required>
               <Select value={currency} onChange={(e) => setCurrency(e.target.value)} options={CURRENCIES.map((c) => ({ value: c.code, label: c.label }))} />
             </Field>
+            {cur.baseCurrency && (
+              <div className="rounded-xl border border-primary/20 bg-primary-fixed/15 p-4 text-body-md text-on-surface">
+                <p className="text-label-lg text-on-primary-fixed-variant">Modo bimonetario para Venezuela</p>
+                <ul className="mt-1 list-disc pl-5 text-on-surface-variant">
+                  <li>Precios y costos en dólares; el POS muestra y cobra también en bolívares.</li>
+                  <li>Tasa BCV y paralelo actualizadas automáticamente (o tu tasa propia).</li>
+                  <li>Pago móvil, punto, efectivo $ y Bs, Zelle, USDT y pagos mixtos.</li>
+                  <li>IGTF 3% sobre pagos en divisas (puedes desactivarlo).</li>
+                </ul>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Nombre del impuesto">
                 <Input value={taxName} onChange={(e) => setTaxName(e.target.value)} placeholder="IVA" />
@@ -354,7 +378,7 @@ function CreateBusinessWizard({ onCreated }: { onCreated: (bid: string) => void 
               <Field label="Tasa" required>
                 <NumberInput value={taxRate} onValueChange={setTaxRate} suffix="%" placeholder="16" />
               </Field>
-              <Field label="RFC / NIT / RUC">
+              <Field label={cur.country === 'VE' ? 'RIF' : 'RFC / NIT / RUC'}>
                 <Input value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder="Opcional" />
               </Field>
             </div>

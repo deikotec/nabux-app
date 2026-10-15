@@ -6,6 +6,7 @@ import { ReceiptModal } from '@/components/receipt/Receipt';
 import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCash } from '@/contexts/CashContext';
 import { useCatalog } from '@/contexts/CatalogContext';
+import { useFx } from '@/contexts/FxContext';
 import { useOnline } from '@/hooks/data';
 import { formatNumber } from '@/lib/format';
 import { beep, cn, errorMessage, productMatches, round2 } from '@/lib/utils';
@@ -21,20 +22,39 @@ import { PaymentSection } from './PaymentSection';
 import { PosKpis } from './PosKpis';
 import { ProductGrid } from './ProductGrid';
 import { QuickEntry } from './QuickEntry';
+import { RateNotice, useRateLabel } from './RateControls';
 import { StatusStrip } from './StatusStrip';
 import { TicketActions, TicketHeader, TicketLines, TicketTotals } from './TicketPanel';
 import { useAutoPrint, useFitToViewport, useMediaQuery } from './hooks/useDevice';
 import { useHeldTickets } from './hooks/useHeldTickets';
+import { usePayments } from './hooks/usePayments';
 import { usePosShortcuts } from './hooks/usePosShortcuts';
 import { usePosStats } from './hooks/usePosStats';
 import { useTicket } from './hooks/useTicket';
 import { GRID_PAGE_SIZE, newId, parseScanInput } from './posUtils';
-import type { CartLine, HeldTicket, TicketDiscount } from './types';
+import type { CartLine, HeldTicket, PaymentEntry, TicketDiscount } from './types';
+
+const METHODS_SELECTOR = '[data-pay-methods] button:not(:disabled)';
+
+/** Normaliza los pagos guardados en un ticket en espera (localStorage). */
+function sanitizePayments(raw: unknown): PaymentEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((p): p is PaymentEntry => !!p && typeof (p as PaymentEntry).key === 'string' && typeof (p as PaymentEntry).methodId === 'string')
+    .map((p) => ({
+      key: p.key,
+      methodId: p.methodId,
+      amount: typeof p.amount === 'number' && Number.isFinite(p.amount) ? p.amount : '',
+      reference: typeof p.reference === 'string' ? p.reference : '',
+      auto: !!p.auto
+    }));
+}
 
 export default function PosPage() {
   const { business, businessId, actor, can, money, currencySymbol } = useActiveBusiness();
   const { products, productsById, findByCode, categories, loading: catalogLoading } = useCatalog();
   const { session, loading: cashLoading, requestOpen, requestClose } = useCash();
+  const fx = useFx();
   const toast = useToast();
   const { confirm } = useConfirm();
   const navigate = useNavigate();
@@ -44,8 +64,10 @@ export default function PosPage() {
   const [autoPrint, setAutoPrint] = useAutoPrint();
   const ticket = useTicket();
   const { addProduct, addFreeAmount, setQty, increment, remove } = ticket;
+  const pay = usePayments(ticket);
   const { held, add: holdAdd, remove: holdRemove, take: holdTake } = useHeldTickets(businessId);
   const stats = usePosStats(session);
+  const rateLabel = useRateLabel();
 
   const searchRef = useRef<HTMLInputElement>(null);
   const panelRef = useFitToViewport<HTMLDivElement>(isDesktop);
@@ -59,6 +81,8 @@ export default function PosPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [receipt, setReceipt] = useState<Sale | null>(null);
   const [processing, setProcessing] = useState(false);
+  /** Resaltar errores de cobro (referencias faltantes) tras intentar cobrar. */
+  const [showPayErrors, setShowPayErrors] = useState(false);
   const processingRef = useRef(false);
 
   const settings = business.settings;
@@ -68,6 +92,9 @@ export default function PosPage() {
   /** Aviso visible solo cuando ya sabemos que no hay caja abierta. */
   const showCashNotice = cashBlocked && !cashLoading;
   const scanBeep = settings.scanBeep !== false;
+
+  /** Equivalente en Bs (solo en modo bimonetario y con tasa). */
+  const moneyLocal = fx.enabled && fx.rate ? fx.moneyLocal : undefined;
 
   /* ---------------- Catálogo / filtros ---------------- */
 
@@ -117,6 +144,23 @@ export default function PosPage() {
     if (finePointer) setTimeout(focusSearch, 60);
   }, [finePointer, focusSearch]);
 
+  /** Lleva el foco a la sección de cobro (abre el panel del ticket en móvil). */
+  const focusPayments = useCallback(
+    (selector = METHODS_SELECTOR) => {
+      if (!isDesktop) setSheetOpen(true);
+      setTimeout(
+        () => {
+          const el = document.querySelector<HTMLElement>(selector);
+          if (!el) return;
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          el.focus({ preventScroll: true });
+        },
+        isDesktop ? 0 : 160
+      );
+    },
+    [isDesktop]
+  );
+
   /* ---------------- Agregar productos ---------------- */
 
   const handleScan = () => {
@@ -157,8 +201,8 @@ export default function PosPage() {
     [addProduct, refocusScanner]
   );
 
-  const handleFreeAdd = (name: string, amount: number) => {
-    addFreeAmount(name, amount);
+  const handleFreeAdd = (name: string, amount: number, taxExempt: boolean) => {
+    addFreeAmount(name, amount, taxExempt);
     refocusScanner();
   };
 
@@ -188,6 +232,9 @@ export default function PosPage() {
 
   /* ---------------- Tickets en espera ---------------- */
 
+  const recordedCount = ticket.recordedPayments.length;
+  const paymentsNote = (n: number) => (n === 1 ? '1 pago registrado' : `${n} pagos registrados`);
+
   const holdCurrent = () => {
     const snap = ticket.snapshot();
     holdAdd({
@@ -198,7 +245,10 @@ export default function PosPage() {
       customerName: snap.customerName,
       itemCount: ticket.totals.itemCount,
       total: ticket.totals.total,
-      cashierName: actor.name
+      cashierName: actor.name,
+      // Se guardan los pagos ya capturados (p. ej. un pago móvil recibido) para no perderlos.
+      payments: snap.payments ?? [],
+      changeMethodId: snap.changeMethodId ?? null
     });
   };
 
@@ -211,8 +261,13 @@ export default function PosPage() {
     }
     holdCurrent();
     ticket.clear();
+    setShowPayErrors(false);
     setSheetOpen(false);
-    toast.success('Ticket puesto en espera. Recupéralo desde “En espera”.');
+    toast.success(
+      recordedCount
+        ? `Ticket puesto en espera con ${paymentsNote(recordedCount)}. Recupéralo desde “En espera”.`
+        : 'Ticket puesto en espera. Recupéralo desde “En espera”.'
+    );
     refocusScanner();
   };
 
@@ -240,22 +295,39 @@ export default function PosPage() {
           category: p.category ?? '',
           unit: p.unit ?? '',
           unitPrice: round2(Number(p.salePrice) || 0),
-          unitCost: round2(Number(p.costPrice) || 0)
+          unitCost: round2(Number(p.costPrice) || 0),
+          taxExempt: !!p.taxExempt
         }
       ];
     });
-    ticket.load({ lines, discount: restored.discount, customerName: restored.customerName });
+    // Pagos guardados: se conservan los de formas de pago que siguen activas.
+    const activeIds = new Set(fx.methods.map((m) => m.id));
+    const savedPayments = sanitizePayments(restored.payments);
+    const payments = savedPayments.filter((p) => activeIds.has(p.methodId));
+    const droppedPayments = savedPayments.length - payments.length;
+    const recorded = payments.filter((p) => !p.auto && Number(p.amount) > 0).length;
+
+    ticket.load({ lines, discount: restored.discount, customerName: restored.customerName, payments, changeMethodId: restored.changeMethodId ?? null });
+    setShowPayErrors(false);
     setHeldOpen(false);
-    if (dropped) toast.warning(`Ticket recuperado. Se quitaron ${dropped} producto(s) que ya no están disponibles.`);
-    else toast.success('Ticket recuperado');
+
+    const warnings = [
+      dropped ? `se quitaron ${dropped} producto(s) que ya no están disponibles` : '',
+      droppedPayments ? `se descartaron ${droppedPayments} pago(s) con formas de pago que ya no están activas` : ''
+    ].filter(Boolean);
+    if (warnings.length) toast.warning(`Ticket recuperado, pero ${warnings.join(' y ')}.`);
+    else toast.success(recorded ? `Ticket recuperado con ${paymentsNote(recorded)}. Revisa lo que resta antes de cobrar.` : 'Ticket recuperado');
     if (!isDesktop) setSheetOpen(true);
     else refocusScanner();
   };
 
   const handleDiscard = async (t: HeldTicket) => {
+    const recorded = sanitizePayments(t.payments).filter((p) => !p.auto && Number(p.amount) > 0).length;
     const ok = await confirm({
       title: '¿Descartar este ticket en espera?',
-      message: `Se eliminará el ticket de ${t.customerName.trim() || 'Cliente mostrador'} por ${money(t.total)}. Esta acción no se puede deshacer.`,
+      message: `Se eliminará el ticket de ${t.customerName.trim() || 'Cliente mostrador'} por ${money(t.total)}${
+        recorded ? `, junto con ${paymentsNote(recorded)} (si el cliente ya pagó, devuélvele el dinero)` : ''
+      }. Esta acción no se puede deshacer.`,
       confirmLabel: 'Descartar',
       tone: 'danger'
     });
@@ -271,12 +343,15 @@ export default function PosPage() {
     if (!ticket.lines.length || processingRef.current) return;
     const ok = await confirm({
       title: '¿Anular el ticket actual?',
-      message: `Se quitarán ${formatNumber(ticket.totals.itemCount)} artículos (${money(ticket.totals.total)}) del ticket. Esta acción no se puede deshacer.`,
+      message: `Se quitarán ${formatNumber(ticket.totals.itemCount)} artículos (${money(ticket.totals.total)}) del ticket${
+        recordedCount ? ` y ${paymentsNote(recordedCount)}` : ''
+      }. Esta acción no se puede deshacer.`,
       confirmLabel: 'Sí, vaciar ticket',
       tone: 'danger'
     });
     if (!ok) return;
     ticket.clear();
+    setShowPayErrors(false);
     setSheetOpen(false);
     toast.info('Ticket anulado');
     refocusScanner();
@@ -295,16 +370,36 @@ export default function PosPage() {
     );
   }, [ticket.lines, ticket.allowNegative, productsById]);
 
-  const cashShort = ticket.paymentMethod === 'cash' && ticket.change < 0;
   const hasItems = ticket.lines.length > 0;
-  const checkoutDisabled = processing || !hasItems || cashBlocked || !!overStockLine || cashShort;
+  const remaining = pay.result.remaining;
+
+  /** Motivo por el que los pagos no permiten cobrar todavía. */
+  const payBlock: string | null = !hasItems
+    ? null
+    : !(ticket.totals.total > 0)
+      ? 'El total del ticket es cero: no hay nada que cobrar.'
+      : pay.needsRate
+        ? 'Sin tasa de cambio no se puede cobrar en bolívares. Actualiza la tasa.'
+        : pay.noPayments
+          ? 'Elige cómo paga el cliente (F6).'
+          : remaining > 0
+            ? `Resta ${money(remaining)}${moneyLocal ? ` (${moneyLocal(remaining)})` : ''} por cobrar.`
+            : pay.missingRefs.length
+              ? `Falta la referencia de ${pay.missingRefs[0].method?.label ?? 'un pago'}.`
+              : pay.hasChange && !pay.changeMethod
+                ? 'No hay una forma de pago habilitada para dar vuelto.'
+                : null;
+
+  const checkoutDisabled = processing || !hasItems || cashBlocked || !!overStockLine || !!payBlock;
+  const changeNote =
+    hasItems && pay.hasChange && pay.changeMethod && pay.changeAmount !== null
+      ? `Entrega vuelto: ${pay.formatIn(pay.changeAmount, pay.changeMethod)}${fx.enabled ? ` · ${pay.changeMethod.label}` : ''}`
+      : null;
   const blockReason = !hasItems
     ? 'Agrega productos para poder cobrar.'
     : overStockLine
       ? `Revisa “${overStockLine.name}”: no hay stock suficiente.`
-      : cashShort
-        ? 'El monto recibido no cubre el total.'
-        : null;
+      : payBlock;
 
   const handleCheckout = async () => {
     if (processingRef.current) return;
@@ -322,8 +417,19 @@ export default function PosPage() {
       toast.error(`Stock insuficiente de “${overStockLine.name}”. Ajusta la cantidad antes de cobrar.`);
       return;
     }
-    if (cashShort) {
-      toast.error('El efectivo recibido es menor al total a cobrar.');
+    if (payBlock) {
+      setShowPayErrors(true);
+      const missing = pay.missingRefs[0];
+      if (pay.noPayments) {
+        toast.info(payBlock);
+        focusPayments();
+      } else if (remaining <= 0 && missing && !pay.needsRate) {
+        toast.error(payBlock);
+        focusPayments(`[data-pay-ref="${CSS.escape(missing.key)}"]`);
+      } else {
+        toast.error(payBlock);
+        if (!isDesktop) setSheetOpen(true);
+      }
       return;
     }
     processingRef.current = true;
@@ -334,20 +440,28 @@ export default function PosPage() {
         actor,
         items: ticket.items,
         discount: ticket.discountAmount,
-        paymentMethod: ticket.paymentMethod,
-        cashReceived: ticket.paymentMethod === 'cash' && ticket.cashReceived !== '' ? ticket.cashReceived : null,
+        payments: pay.drafts,
+        rate: fx.enabled ? fx.rate : null,
+        rateSource: fx.enabled ? fx.rateSource : null,
+        changeMethodId: pay.changeMethod?.id ?? null,
         customerName: ticket.customerName,
         sessionId: session?.id ?? null,
         products
       });
       ticket.clear();
+      setShowPayErrors(false);
       setQuery('');
       setSheetOpen(false);
       setReceipt(sale);
       if (sale.offline) {
         toast.warning('Sin conexión: la venta se guardó en este equipo y se sincronizará automáticamente al volver la red.');
       } else {
-        toast.success(`Venta ${sale.folio} registrada · ${money(sale.total)}`);
+        const local = sale.totalLocal ? ` · ${fx.formatLocal(sale.totalLocal)}` : '';
+        const change =
+          sale.changeAmount && sale.changeAmount > 0
+            ? `. Entrega vuelto: ${fx.moneyIn(sale.changeAmount, sale.changeCurrency || business.currency)}`
+            : '';
+        toast.success(`Venta ${sale.folio} registrada · ${money(sale.total)}${local}${change}`);
       }
     } catch (e) {
       toast.error(errorMessage(e));
@@ -386,6 +500,14 @@ export default function PosPage() {
       focusSearch();
     },
     onFreeAmount: () => setFreeOpen(true),
+    onAddPayment: () => {
+      if (!hasItems) {
+        toast.info('Agrega productos al ticket antes de registrar pagos.');
+        focusSearch();
+        return;
+      }
+      focusPayments();
+    },
     onHold: handleHold,
     onDiscount: openDiscount,
     onCheckout: () => void handleCheckout(),
@@ -399,18 +521,10 @@ export default function PosPage() {
   /* ---------------- Render ---------------- */
 
   const paymentProps = {
-    method: ticket.paymentMethod,
-    onMethodChange: ticket.setPaymentMethod,
+    pay,
     total: ticket.totals.total,
-    cashReceived: ticket.cashReceived,
-    onCashReceivedChange: ticket.setCashReceived,
-    received: ticket.received,
-    change: ticket.change,
-    money,
-    currency: business.currency,
-    locale: business.locale,
-    currencySymbol,
     disabled: processing,
+    showErrors: showPayErrors,
     onSubmit: () => void handleCheckout()
   };
 
@@ -419,6 +533,7 @@ export default function PosPage() {
     processing,
     checkoutDisabled,
     blockReason,
+    changeNote,
     needsCash: showCashNotice,
     onOpenCash: requestOpen,
     autoPrint,
@@ -436,6 +551,7 @@ export default function PosPage() {
     allowNegative: ticket.allowNegative,
     highlight: ticket.highlight,
     money,
+    moneyLocal,
     onIncrement: increment,
     onSetQty: setQty,
     onRemove: remove
@@ -450,13 +566,18 @@ export default function PosPage() {
     currency: business.currency,
     canDiscount: ticket.canDiscount && ticket.maxDiscountPct > 0 && hasItems,
     onDiscount: openDiscount,
-    money
+    money,
+    exemptTotal: ticket.exemptTotal,
+    dual: fx.enabled,
+    moneyLocal,
+    rateLabel
   };
 
   const noProducts = !catalogLoading && activeProducts.length === 0;
+  const localCurrency = stats.localCurrency;
 
   return (
-    <div className={cn(!isDesktop && 'pb-24')}>
+    <div className={cn(!isDesktop && 'pb-28')}>
       <PageHeader
         title="Terminal POS"
         actions={
@@ -487,9 +608,11 @@ export default function PosPage() {
             setAutoPrint(!autoPrint);
             toast.info(autoPrint ? 'Impresión automática desactivada en este equipo.' : 'El ticket se imprimirá al cobrar.');
           }}
+          showRate={fx.enabled}
         />
 
         {showCashNotice && <CashNotice onOpen={requestOpen} />}
+        <RateNotice />
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,7fr)_minmax(380px,5fr)]">
           {/* Catálogo y entrada rápida */}
@@ -543,6 +666,7 @@ export default function PosPage() {
                   cartQty={cartQty}
                   allowNegative={ticket.allowNegative}
                   money={money}
+                  moneyLocal={moneyLocal}
                   onAdd={handleGridAdd}
                   onFreeAmount={() => setFreeOpen(true)}
                   onShowMore={() => setPaging({ key: filterKey, limit: limit + GRID_PAGE_SIZE })}
@@ -558,6 +682,9 @@ export default function PosPage() {
               todayLoading={stats.todayLoading}
               cashInDrawer={stats.cashInDrawer}
               openingFloat={session ? Number(session.openingFloat) || 0 : null}
+              cashInDrawerLocal={stats.cashInDrawerLocal}
+              openingFloatLocal={session ? Number(session.openingFloatLocal) || 0 : null}
+              formatLocal={localCurrency ? (n) => fx.moneyIn(n, localCurrency) : undefined}
               cashLoading={stats.cashLoading}
               heldCount={held.length}
               money={money}
@@ -596,6 +723,7 @@ export default function PosPage() {
             itemCount={ticket.totals.itemCount}
             total={ticket.totals.total}
             money={money}
+            moneyLocal={moneyLocal}
             blocked={showCashNotice}
             onOpen={() => setSheetOpen(true)}
           />
@@ -603,7 +731,9 @@ export default function PosPage() {
             open={sheetOpen}
             onClose={() => setSheetOpen(false)}
             title="Ticket nuevo"
-            subtitle={`${formatNumber(ticket.totals.itemCount)} ${ticket.totals.itemCount === 1 ? 'artículo' : 'artículos'} · ${money(ticket.totals.total)}`}
+            subtitle={`${formatNumber(ticket.totals.itemCount)} ${ticket.totals.itemCount === 1 ? 'artículo' : 'artículos'} · ${money(ticket.totals.total)}${
+              moneyLocal ? ` · ${moneyLocal(ticket.totals.total)}` : ''
+            }`}
             icon={ReceiptText}
             size="lg"
             dismissible={!processing}
@@ -632,7 +762,7 @@ export default function PosPage() {
         </>
       )}
 
-      <FreeAmountModal open={freeOpen} onClose={() => setFreeOpen(false)} onAdd={handleFreeAdd} currencySymbol={currencySymbol} />
+      <FreeAmountModal open={freeOpen} onClose={() => setFreeOpen(false)} onAdd={handleFreeAdd} />
 
       <DiscountModal
         open={discountOpen}
@@ -651,6 +781,7 @@ export default function PosPage() {
         onClose={() => setHeldOpen(false)}
         held={held}
         money={money}
+        moneyLocal={moneyLocal}
         hasCurrent={hasItems}
         onRestore={handleRestore}
         onDiscard={(t) => void handleDiscard(t)}

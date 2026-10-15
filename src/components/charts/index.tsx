@@ -55,7 +55,7 @@ export function Sparkline({ data, className, color = 'var(--color-primary)' }: {
   const w = 100;
   const h = 36;
   const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
+  const min = data.length ? Math.min(...data) : 0;
   const pts: [number, number][] = data.map((v, i) => [data.length > 1 ? (i / (data.length - 1)) * w : w, h - 4 - ((v - min) / (max - min || 1)) * (h - 8)]);
   const line = smoothPath(pts);
   const last = pts[pts.length - 1];
@@ -84,7 +84,8 @@ export function AreaChart({
   formatValue = (v) => String(v),
   formatAxis,
   className,
-  color = 'var(--color-primary)'
+  color = 'var(--color-primary)',
+  zeroBased = true
 }: {
   data: SeriesPoint[];
   height?: number;
@@ -92,18 +93,29 @@ export function AreaChart({
   formatAxis?: (v: number) => string;
   className?: string;
   color?: string;
+  /** false = la escala se ajusta al rango de los datos (útil para tasas de cambio). */
+  zeroBased?: boolean;
 }) {
   const { ref, width } = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const pad = { l: 52, r: 16, t: 16, b: 28 };
   const innerW = Math.max(0, width - pad.l - pad.r);
   const innerH = height - pad.t - pad.b;
-  const max = niceMax(Math.max(...data.map((d) => d.value), 0));
+  const values = data.map((d) => d.value);
+  const rawMax = values.length ? Math.max(...values) : 0;
+  const rawMin = values.length ? Math.min(...values) : 0;
+  let lo = 0;
+  let hi = niceMax(Math.max(rawMax, 0));
+  if (!zeroBased && values.length) {
+    const span = rawMax - rawMin || Math.abs(rawMax) * 0.05 || 1;
+    lo = rawMin - span * 0.15;
+    hi = rawMax + span * 0.15;
+  }
   const x = (i: number) => pad.l + (data.length > 1 ? (i / (data.length - 1)) * innerW : innerW / 2);
-  const y = (v: number) => pad.t + innerH - (v / max) * innerH;
+  const y = (v: number) => pad.t + innerH - ((v - lo) / (hi - lo || 1)) * innerH;
   const pts = data.map((d, i) => [x(i), y(d.value)] as [number, number]);
   const line = smoothPath(pts);
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * max);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => lo + t * (hi - lo));
   const labelEvery = Math.max(1, Math.ceil(data.length / Math.max(1, Math.floor(innerW / 70))));
   const gid = useMemo(() => `ag${Math.random().toString(36).slice(2, 8)}`, []);
 
