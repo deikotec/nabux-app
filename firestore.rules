@@ -1,0 +1,203 @@
+rules_version = '2';
+
+// Modelo multi-negocio:
+//   users/{uid}                         perfil e índice de negocios del usuario
+//   invites/{bid}_{email}               invitaciones pendientes
+//   businesses/{bid}                    datos y configuración del negocio
+//   businesses/{bid}/members/{uid}      rol y permisos de cada persona
+//   businesses/{bid}/products|suppliers|sales|movements|cashSessions|activity
+//   businesses/{bid}/meta/counters      folio consecutivo de ventas
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helpers ----------
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function myEmail() { return request.auth.token.email.lower(); }
+
+    function bizPath(bid) { return /databases/$(database)/documents/businesses/$(bid); }
+    function memberPath(bid) { return /databases/$(database)/documents/businesses/$(bid)/members/$(request.auth.uid); }
+    function invitePath(bid) { return /databases/$(database)/documents/invites/$(bid + '_' + myEmail()); }
+
+    function memberData(bid) { return get(memberPath(bid)).data; }
+    function isMember(bid) {
+      return signedIn() && exists(memberPath(bid)) && memberData(bid).status == 'active';
+    }
+    // Estado del miembro después de la escritura (para batches que crean el miembro y escriben en el mismo paso)
+    function isMemberAfter(bid) {
+      return signedIn() && existsAfter(memberPath(bid)) && getAfter(memberPath(bid)).data.status == 'active';
+    }
+    function isAdmin(bid) { return isMember(bid) && memberData(bid).role in ['owner', 'admin']; }
+    function can(bid, perm) {
+      return isMember(bid) && (memberData(bid).role in ['owner', 'admin'] || perm in memberData(bid).permissions);
+    }
+    function canAny(bid, perms) {
+      return isMember(bid) && (memberData(bid).role in ['owner', 'admin'] || memberData(bid).permissions.hasAny(perms));
+    }
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+    function validRole(r) { return r in ['admin', 'manager', 'cashier', 'warehouse']; }
+    function validPermissions(p) {
+      return p is list && p.toSet().difference(['pos', 'discounts', 'void', 'inventory', 'reports', 'staff', 'settings'].toSet()).size() == 0;
+    }
+
+    // ---------- Usuarios ----------
+    match /users/{userId} {
+      allow read, create, update: if signedIn() && uid() == userId;
+      allow delete: if false;
+    }
+
+    // ---------- Invitaciones ----------
+    match /invites/{inviteId} {
+      allow read: if signedIn() && (resource.data.email == myEmail() || can(resource.data.businessId, 'staff'));
+      allow create, update: if signedIn()
+        && inviteId == request.resource.data.businessId + '_' + request.resource.data.email
+        && request.resource.data.email == request.resource.data.email.lower()
+        && can(request.resource.data.businessId, 'staff')
+        && validRole(request.resource.data.role)
+        && validPermissions(request.resource.data.permissions)
+        && (request.resource.data.role != 'admin' || isAdmin(request.resource.data.businessId))
+        // Quien no es admin no puede otorgar permisos que él mismo no tiene
+        && (isAdmin(request.resource.data.businessId)
+            || request.resource.data.permissions.toSet()
+                 .difference(memberData(request.resource.data.businessId).permissions.toSet()).size() == 0)
+        && request.resource.data.invitedBy == uid();
+      allow delete: if signedIn() && (resource.data.email == myEmail() || can(resource.data.businessId, 'staff'));
+    }
+
+    // ---------- Negocios ----------
+    match /businesses/{bid} {
+      allow read: if isMember(bid) || (signedIn() && resource.data.ownerId == uid());
+      allow create: if signedIn()
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120;
+      allow update: if can(bid, 'settings') && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if signedIn() && resource.data.ownerId == uid();
+
+      // Folio consecutivo: solo puede avanzar de uno en uno.
+      match /meta/counters {
+        allow read: if isMember(bid);
+        allow create: if signedIn()
+          && ((existsAfter(bizPath(bid)) && getAfter(bizPath(bid)).data.ownerId == uid())
+              || (can(bid, 'pos') && request.resource.data.sale == 1));
+        allow update: if can(bid, 'pos') && request.resource.data.sale == resource.data.sale + 1;
+      }
+
+      // ---------- Equipo ----------
+      match /members/{memberId} {
+        allow read: if isMember(bid) || (signedIn() && memberId == uid());
+
+        allow create: if signedIn() && memberId == uid() && request.resource.data.uid == uid() && (
+          // El propietario al crear el negocio (mismo batch)
+          (request.resource.data.role == 'owner'
+            && existsAfter(bizPath(bid))
+            && getAfter(bizPath(bid)).data.ownerId == uid())
+          ||
+          // Aceptar una invitación dirigida a mi correo verificado
+          (request.auth.token.email_verified == true
+            && exists(invitePath(bid))
+            && request.resource.data.role == get(invitePath(bid)).data.role
+            && request.resource.data.permissions == get(invitePath(bid)).data.permissions
+            && request.resource.data.status == 'active'
+            && request.resource.data.email == myEmail())
+        );
+
+        allow update: if
+          // Gestión de otros colaboradores (nunca el propietario ni escalar a propietario)
+          (can(bid, 'staff')
+            && memberId != uid()
+            && resource.data.role != 'owner'
+            && request.resource.data.role != 'owner'
+            && request.resource.data.uid == resource.data.uid
+            && validPermissions(request.resource.data.permissions)
+            && (isAdmin(bid)
+                || (resource.data.role != 'admin' && request.resource.data.role != 'admin'
+                    // Solo puede agregar permisos que él mismo tiene
+                    && request.resource.data.permissions.toSet()
+                         .difference(resource.data.permissions.toSet())
+                         .difference(memberData(bid).permissions.toSet()).size() == 0)))
+          ||
+          // Cada persona edita sus datos básicos
+          (signedIn() && memberId == uid() && isMember(bid)
+            && changedOnly(['displayName', 'photoURL', 'phone', 'lastActiveAt']));
+
+        allow delete: if
+          (can(bid, 'staff') && memberId != uid() && resource.data.role != 'owner'
+            && (isAdmin(bid) || resource.data.role != 'admin'))
+          || (signedIn() && memberId == uid() && resource.data.role != 'owner');
+      }
+
+      // ---------- Catálogo ----------
+      match /products/{pid} {
+        allow read: if isMember(bid);
+        allow create: if can(bid, 'inventory')
+          && request.resource.data.name is string && request.resource.data.name.size() > 0
+          && request.resource.data.salePrice is number
+          && request.resource.data.costPrice is number
+          && request.resource.data.stock is number;
+        allow update: if (can(bid, 'inventory')
+            && request.resource.data.name is string && request.resource.data.name.size() > 0
+            && request.resource.data.salePrice is number
+            && request.resource.data.stock is number)
+          // Cajeros: al vender/anular solo pueden tocar el stock
+          || (canAny(bid, ['pos', 'void']) && changedOnly(['stock', 'updatedAt']));
+        allow delete: if can(bid, 'inventory');
+      }
+
+      match /suppliers/{sid} {
+        allow read: if isMember(bid);
+        allow write: if can(bid, 'inventory');
+      }
+
+      // ---------- Ventas ----------
+      match /sales/{saleId} {
+        allow read: if can(bid, 'reports') || (isMember(bid) && resource.data.cashierId == uid());
+        allow create: if can(bid, 'pos')
+          && request.resource.data.cashierId == uid()
+          && request.resource.data.status == 'completed'
+          && request.resource.data.total is number
+          && request.resource.data.items is list
+          && request.resource.data.items.size() > 0
+          && (request.resource.data.discount == 0 || can(bid, 'discounts'));
+        allow update: if can(bid, 'void')
+          && resource.data.status == 'completed'
+          && request.resource.data.status == 'voided'
+          && request.resource.data.voidedBy == uid()
+          && changedOnly(['status', 'voidedAt', 'voidedBy', 'voidedByName', 'voidReason']);
+        allow delete: if false;
+      }
+
+      // Kardex: historial inmutable de movimientos de stock
+      match /movements/{mid} {
+        allow read: if isMember(bid);
+        allow create: if canAny(bid, ['inventory', 'pos', 'void']) && request.resource.data.userId == uid();
+        allow update, delete: if false;
+      }
+
+      // ---------- Caja ----------
+      match /cashSessions/{sid} {
+        allow read: if can(bid, 'reports') || (isMember(bid) && resource.data.openedBy == uid());
+        allow create: if can(bid, 'pos')
+          && request.resource.data.openedBy == uid()
+          && request.resource.data.status == 'open'
+          && request.resource.data.openingFloat is number;
+        allow update: if isMember(bid)
+          && resource.data.status == 'open'
+          && request.resource.data.status == 'closed'
+          && request.resource.data.openedBy == resource.data.openedBy
+          && (resource.data.openedBy == uid() || can(bid, 'reports'));
+        allow delete: if false;
+      }
+
+      // ---------- Bitácora de auditoría (solo se agrega, nunca se edita) ----------
+      match /activity/{aid} {
+        allow read: if canAny(bid, ['staff', 'reports']);
+        allow create: if isMemberAfter(bid) && request.resource.data.userId == uid();
+        allow update, delete: if false;
+      }
+    }
+  }
+}

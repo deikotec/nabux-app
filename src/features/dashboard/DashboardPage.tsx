@@ -1,0 +1,122 @@
+import { useMemo, useState } from 'react';
+import { Download, TriangleAlert } from 'lucide-react';
+import { ROLE_LABELS } from '@/config/app';
+import { useActiveBusiness } from '@/contexts/BusinessContext';
+import { useCatalog } from '@/contexts/CatalogContext';
+import { useRecentSales } from '@/hooks/data';
+import { dayKey } from '@/lib/dates';
+import { firstName, formatNumber, greeting } from '@/lib/format';
+import { errorMessage } from '@/lib/utils';
+import { Button, PageHeader, Segmented, useToast, type TabOption } from '@/components/ui';
+import type { Sale } from '@/types';
+import { SaleDetailModal } from '@/features/sales/SaleDetailModal';
+import { exportSalesCsv } from '@/features/sales/saleUtils';
+import { GettingStartedCard } from './GettingStartedCard';
+import { KpiGrid } from './KpiGrid';
+import { LowStockCard } from './LowStockCard';
+import { QuickActionsCard } from './QuickActionsCard';
+import { RecentSalesCard } from './RecentSalesCard';
+import { RevenueCard } from './RevenueCard';
+import { TopCategoriesCard } from './TopCategoriesCard';
+import { PRESET_COPY, useDashboardMetrics, type DashPreset } from './useDashboardMetrics';
+
+const PRESET_OPTIONS: TabOption<DashPreset>[] = (Object.keys(PRESET_COPY) as DashPreset[]).map((value) => ({
+  value,
+  label: PRESET_COPY[value].label
+}));
+
+export default function DashboardPage() {
+  const { business, member, role, can, money, moneyCompact } = useActiveBusiness();
+  const { products, lowStock, outOfStock, loading: catalogLoading } = useCatalog();
+  const toast = useToast();
+  const [preset, setPreset] = useState<DashPreset>('today');
+  const [selected, setSelected] = useState<Sale | null>(null);
+
+  // Sin permiso de reportes los hooks ya devuelven solo las ventas del usuario.
+  const mine = !can('reports');
+  const metrics = useDashboardMetrics(preset);
+  const recent = useRecentSales(6);
+  const copy = PRESET_COPY[preset];
+
+  const catalog = useMemo(() => {
+    const active = products.filter((p) => p.active !== false);
+    return {
+      loading: catalogLoading,
+      activeCount: active.length,
+      categoryCount: new Set(active.map((p) => p.category).filter(Boolean)).size,
+      valuation: active.reduce((a, p) => a + Math.max(0, Number(p.stock) || 0) * (Number(p.costPrice) || 0), 0),
+      lowCount: lowStock.length,
+      outCount: outOfStock.length
+    };
+  }, [products, lowStock.length, outOfStock.length, catalogLoading]);
+
+  const showOnboarding = !catalogLoading && !recent.loading && !recent.error && (products.length === 0 || recent.data.length === 0);
+
+  // Venta abierta tomada de las listas en tiempo real (refleja anulaciones al instante).
+  const selectedSale = selected
+    ? (recent.data.find((s) => s.id === selected.id) ?? metrics.periodSales.find((s) => s.id === selected.id) ?? selected)
+    : null;
+
+  const downloadSummary = () => {
+    if (!metrics.periodSales.length) {
+      toast.info(`No hay ventas ${copy.period} para descargar.`);
+      return;
+    }
+    exportSalesCsv(`resumen-ventas-${copy.file}-${dayKey(new Date())}.csv`, metrics.periodSales, !mine);
+    toast.success(`Resumen descargado (${formatNumber(metrics.periodSales.length)} ventas).`);
+  };
+
+  const loadError = metrics.error ?? recent.error;
+
+  return (
+    <>
+      <PageHeader
+        eyebrow={`${business.name} • ${role ? ROLE_LABELS[role] : 'Equipo'}`}
+        title={`${greeting()}, ${firstName(member.displayName) || 'bienvenido'}`}
+        description={
+          mine
+            ? 'Aquí tienes tus ventas y el estado del inventario en tiempo real.'
+            : 'Aquí tienes la actividad operativa en tiempo real y el rendimiento de stock de tu negocio.'
+        }
+        actions={
+          <>
+            <Segmented options={PRESET_OPTIONS} value={preset} onChange={setPreset} />
+            <Button variant="secondary" icon={Download} onClick={downloadSummary} disabled={metrics.loading}>
+              Descargar resumen
+            </Button>
+          </>
+        }
+      />
+
+      <div className="flex flex-col gap-6">
+        {showOnboarding && <GettingStartedCard productCount={products.length} recentSales={recent.data} />}
+
+        {loadError && (
+          <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-body-md text-red-900">
+            <TriangleAlert className="mt-0.5 size-5 shrink-0 text-red-600" aria-hidden />
+            <p>
+              No pudimos cargar las ventas: <span className="font-semibold">{errorMessage(loadError)}</span>
+            </p>
+          </div>
+        )}
+
+        <KpiGrid preset={preset} metrics={metrics} mine={mine} catalog={catalog} money={money} />
+
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+          <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+            <RevenueCard preset={preset} metrics={metrics} money={money} moneyCompact={moneyCompact} />
+            <RecentSalesCard sales={recent.data} loading={recent.loading} mine={mine} canSell={can('pos')} money={money} onOpen={setSelected} />
+          </div>
+
+          <div className="grid min-w-0 grid-cols-1 items-start gap-6 md:grid-cols-2 xl:col-span-4 xl:grid-cols-1">
+            <QuickActionsCard />
+            <LowStockCard lowStock={lowStock} loading={catalogLoading} canRestock={can('inventory')} />
+            <TopCategoriesCard categories={metrics.categories} loading={metrics.loading} preset={preset} mine={mine} money={money} />
+          </div>
+        </div>
+      </div>
+
+      <SaleDetailModal sale={selectedSale} onClose={() => setSelected(null)} />
+    </>
+  );
+}

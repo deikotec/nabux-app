@@ -1,0 +1,70 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+/**
+ * Limita el alto de un panel "sticky" para que su borde inferior nunca quede fuera de la ventana,
+ * aunque el panel todavía no esté pegado arriba (así el botón Cobrar siempre está a la vista).
+ */
+export function useFitToViewport<T extends HTMLElement>(enabled: boolean, bottomGap = 16, minHeight = 360) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const top = Math.max(el.getBoundingClientRect().top, 0);
+      el.style.maxHeight = `${Math.max(minHeight, Math.floor(window.innerHeight - top - bottomGap))}px`;
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
+    ro?.observe(document.body);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      ro?.disconnect();
+      el.style.maxHeight = '';
+    };
+  }, [enabled, bottomGap, minHeight]);
+  return ref;
+}
+
+/** Coincidencia de una media query, reactiva a cambios de tamaño. */
+export function useMediaQuery(mediaQuery: string): boolean {
+  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(mediaQuery).matches);
+  useEffect(() => {
+    const mql = window.matchMedia(mediaQuery);
+    const update = () => setMatches(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, [mediaQuery]);
+  return matches;
+}
+
+const AUTO_PRINT_KEY = 'nabux:pos:autoprint';
+
+/** Preferencia del equipo: imprimir el ticket automáticamente al cobrar. */
+export function useAutoPrint(): [boolean, (v: boolean) => void] {
+  const [value, setValue] = useState(() => {
+    try {
+      return localStorage.getItem(AUTO_PRINT_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const update = useCallback((v: boolean) => {
+    setValue(v);
+    try {
+      localStorage.setItem(AUTO_PRINT_KEY, v ? '1' : '0');
+    } catch {
+      /* sin almacenamiento local */
+    }
+  }, []);
+  return [value, update];
+}

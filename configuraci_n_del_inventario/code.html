@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#00174b", "on-background": "#131b2e", "on-secondary": "#ffffff", "surface-container-high": "#e2e7ff", "on-error-container": "#93000a", "tertiary-fixed-dim": "#ffb95f", "on-primary": "#ffffff", "tertiary-container": "#a36700", "on-tertiary-fixed-variant": "#653e00", "background": "#faf8ff", "inverse-primary": "#68dba9", "outline": "#6d7a72", "on-tertiary": "#ffffff", "on-primary-fixed-variant": "#005137", "secondary-fixed": "#dbe1ff", "surface-container-lowest": "#ffffff", "on-surface-variant": "#3d4a42", "on-secondary-fixed-variant": "#003ea8", "surface-dim": "#d2d9f4", "primary": "#006948", "surface-bright": "#faf8ff", "primary-fixed-dim": "#68dba9", "on-tertiary-container": "#fffbff", "surface-container-low": "#f2f3ff", "on-secondary-container": "#fefcff", "primary-fixed": "#85f8c4", "surface-variant": "#dae2fd", "error": "#ba1a1a", "outline-variant": "#bccac0", "inverse-surface": "#283044", "on-error": "#ffffff", "on-primary-fixed": "#002114", "surface-tint": "#006c4a", "on-primary-container": "#f5fff7", "inverse-on-surface": "#eef0ff", "surface-container": "#eaedff", "tertiary-fixed": "#ffddb8", "primary-container": "#00855d", "secondary-container": "#316bf3", "error-container": "#ffdad6", "secondary-fixed-dim": "#b4c5ff", "surface": "#faf8ff", "on-surface": "#131b2e", "secondary": "#0051d5", "surface-container-highest": "#dae2fd", "tertiary": "#825100", "on-tertiary-fixed": "#2a1700" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xl": "2rem", "margin": "1rem", "margin-desktop": "2rem", "space-md": "0.75rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "gutter-desktop": "1.5rem", "gutter": "1rem", "space-lg": "1.25rem" }, "fontFamily": { "headline-sm": [ "Plus Jakarta Sans" ], "label-md": [ "Plus Jakarta Sans" ], "data-mono": [ "Plus Jakarta Sans" ], "body-sm": [ "Plus Jakarta Sans" ], "headline-md": [ "Plus Jakarta Sans" ], "label-sm": [ "Plus Jakarta Sans" ], "body-md": [ "Plus Jakarta Sans" ], "display-lg": [ "Plus Jakarta Sans" ], "label-lg": [ "Plus Jakarta Sans" ], "headline-lg-mobile": [ "Plus Jakarta Sans" ], "headline-lg": [ "Plus Jakarta Sans" ], "body-lg": [ "Plus Jakarta Sans" ] }, "fontSize": { "headline-sm": [ "16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "600" } ], "label-md": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" } ], "data-mono": [ "13px", { "lineHeight": "18px", "fontWeight": "500" } ], "body-sm": [ "12px", { "lineHeight": "16px", "fontWeight": "400" } ], "headline-md": [ "20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "label-sm": [ "11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" } ], "body-md": [ "14px", { "lineHeight": "20px", "fontWeight": "400" } ], "display-lg": [ "36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "label-lg": [ "14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" } ], "headline-lg-mobile": [ "22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" } ], "headline-lg": [ "28px", { "lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "700" } ], "body-lg": [ "16px", { "lineHeight": "24px", "fontWeight": "400" } ] } } } }</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-space-md"><div class="flex flex-col gap-space-lg"><div class="px-space-md flex flex-col gap-space-xs"><div class="flex items-center gap-space-sm"><img alt="MercadoStock Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH7bVkzbJ8UQd4lf-1mcCDZKsL0s_I1vlDWuE1u3TRRIDYSOFOoO-3UMDSc_1vun7UHrkTjk0WGafEjFJZLve1vlF7qOjI6pRbxizMT6gULBBeOnZ8zJqH5FQDY0a-yGdyTjZhP6g-h2RjI9-KZ-v9JEvaetz9UTYUHiFBqVfmeV4SFdjVzjEfbNA7pamjmXBpJN7kEbcv-nfEAX5Ohcsn1D0e12uv28YDV88BDw_CYAkSU8lAy6dWcQ"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-primary tracking-tight">MercadoStock</span></div></div><div class="flex items-center"><span class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Sucursal Centro</span></div></div><nav class="flex flex-col gap-space-xs px-space-sm" data-active-classes="bg-primary-container text-on-primary-container font-headline-sm"><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">space_dashboard</span><span>Panel Principal</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="inventario-stock" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span>Inventario &amp; Stock</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="terminal-ventas" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[20px]">point_of_sale</span><span>Terminal POS</span></div><span class="font-data-mono text-data-mono px-space-xs rounded bg-surface-container-high text-on-surface-variant">F2</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="reportes-metricas" href="#"><span class="material-symbols-outlined text-[20px]">monitoring</span><span>Reportes &amp; Métricas</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="personal-usuarios" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span>Personal &amp; Usuarios</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="configuracion" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Configuración</span></a></nav></div><div class="px-space-md flex flex-col gap-space-sm"><div class="p-space-md rounded-xl bg-surface-container flex flex-col gap-space-xs"><div class="flex items-center justify-between text-on-surface"><span class="font-label-md text-label-md">Estado de Red</span><span class="flex items-center gap-1 font-label-sm text-label-sm text-primary"><span class="w-2 h-2 rounded-full bg-primary"></span>En Línea</span></div><p class="font-body-sm text-body-sm text-on-surface-variant">Lector USB conectado y listo.</p></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter-desktop flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md flex-1 max-w-xl"><div class="relative w-full flex items-center"><span class="material-symbols-outlined absolute left-space-md text-on-surface-variant text-[20px]">search</span><input class="w-full pl-10 pr-16 py-space-xs h-10 rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" placeholder="Buscar producto, SKU o cliente..." readonly="" type="text"/><kbd class="absolute right-space-sm px-space-xs py-0.5 rounded bg-surface-container font-data-mono text-data-mono text-on-surface-variant shadow-sm">Ctrl+K</kbd></div><div class="hidden xl:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest shadow-sm shrink-0"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-sm text-label-sm text-on-surface-variant">Caja Abierta • Turno Mañana</span></div></div><div class="flex items-center gap-space-md shrink-0"><button class="flex items-center gap-space-xs px-space-md py-space-xs h-10 rounded-lg bg-primary hover:bg-primary-container text-on-primary transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span class="font-label-lg text-label-lg">Nueva Venta</span></button><button aria-label="Alertas de Stock" class="relative p-space-sm rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error"></span></button><div class="flex items-center gap-space-sm pl-space-xs"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN218IsFoFZrApifiVtMoyXAnrtnyfTaZxEc_90x67m0dFN2ukmBqPWI7waqd1kpcZ4HIoFCD72zCbx9jqd17ThSjqBJy9iznzRcY9bCiSrScqdKdqSC2d_kv7IQeEKap97lnwHQ0kWlrQg9JAJ2h10ZHpR989s8s-qKFYDjm8GPE33wPpt1EHWLbxE1sOMsPwtkcqHICC6c0J53G7X6mA-t2aveMlgy2PvQT-j5hLJsB62QhZtzPBEQ"/><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface leading-tight">María Gómez</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">Administradora</span></div></div></div></header><main class="relative pt-16 bg-surface w-full px-gutter-desktop min-h-screen"><div class="flex flex-col w-full pb-space-xl">
+<!-- Page Header & Action Bar -->
+<header class="flex flex-col gap-space-sm pt-space-lg pb-space-md">
+<div class="flex items-center justify-between gap-space-md flex-wrap">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-primary font-label-sm uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>Módulo de Inventario</span>
+<span class="text-outline-variant">•</span>
+<span class="text-on-surface-variant font-label-sm">Ajustes &amp; Reglas Operativas</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Configuración del Inventario</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-3xl">
+          Personaliza los umbrales de reabastecimiento, alertas tempranas de caducidad, reglas de margen de precios, categorías de productos y sincronización de hardware.
+        </p>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="px-space-md py-space-xs h-10 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-all font-label-lg text-label-lg shadow-sm flex items-center gap-space-xs" id="btn-discard" type="button">
+<span class="material-symbols-outlined text-[18px]">history</span>
+<span>Descartar Cambios</span>
+</button>
+<button class="px-space-lg py-space-xs h-10 rounded-lg bg-primary hover:bg-primary-container text-on-primary transition-all font-label-lg text-label-lg shadow-sm flex items-center gap-space-xs active:scale-[0.98]" id="btn-save-main" type="button">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+<span>Guardar Configuración</span>
+</button>
+</div>
+</div>
+<!-- Navigation Tabs Bar -->
+<nav aria-label="Secciones de Configuración" class="flex items-center gap-space-xs overflow-x-auto pt-space-sm mt-space-xs scrollbar-none">
+<button class="tab-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-colors bg-primary-container text-on-primary-container font-headline-sm flex items-center gap-space-xs shrink-0" data-tab="tab-stock" type="button">
+<span class="material-symbols-outlined text-[18px]">notifications_active</span>
+<span>Reglas de Stock &amp; Alertas</span>
+</button>
+<button class="tab-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-colors text-on-surface-variant hover:bg-surface-container hover:text-on-surface flex items-center gap-space-xs shrink-0" data-tab="tab-margenes" type="button">
+<span class="material-symbols-outlined text-[18px]">percent</span>
+<span>Márgenes &amp; Precios Automáticos</span>
+</button>
+<button class="tab-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-colors text-on-surface-variant hover:bg-surface-container hover:text-on-surface flex items-center gap-space-xs shrink-0" data-tab="tab-categorias" type="button">
+<span class="material-symbols-outlined text-[18px]">category</span>
+<span>Categorías &amp; Familias</span>
+</button>
+<button class="tab-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-colors text-on-surface-variant hover:bg-surface-container hover:text-on-surface flex items-center gap-space-xs shrink-0" data-tab="tab-unidades" type="button">
+<span class="material-symbols-outlined text-[18px]">straighten</span>
+<span>Unidades &amp; Conversiones</span>
+</button>
+<button class="tab-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-colors text-on-surface-variant hover:bg-surface-container hover:text-on-surface flex items-center gap-space-xs shrink-0" data-tab="tab-hardware" type="button">
+<span class="material-symbols-outlined text-[18px]">barcode_scanner</span>
+<span>Lector &amp; Códigos (Hardware)</span>
+</button>
+<button class="tab-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-colors text-on-surface-variant hover:bg-surface-container hover:text-on-surface flex items-center gap-space-xs shrink-0" data-tab="tab-backup" type="button">
+<span class="material-symbols-outlined text-[18px]">cloud_sync</span>
+<span>Exportación / Backup</span>
+</button>
+</nav>
+</header>
+<!-- Live Status Bar -->
+<div class="mb-space-lg p-space-md rounded-xl bg-surface-container-low shadow-sm flex items-center justify-between flex-wrap gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[24px]">verified</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Motor de Políticas de Inventario Operativo</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Última sincronización: Hoy a las 08:30 AM por <strong class="text-on-surface">María Gómez</strong> (Administradora)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-primary-fixed-dim/30 text-on-primary-fixed-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+        Reglas Activas en 4 TPVs
+      </span>
+<span class="font-data-mono text-data-mono text-on-surface-variant px-space-sm py-0.5 rounded bg-surface-container-lowest shadow-sm">
+        v3.8.4-sucursal-centro
+      </span>
+</div>
+</div>
+<!-- Bento Grid Configuration Panels -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-desktop">
+<!-- COL 1: Main Stock & Margins (7 Cols) -->
+<div class="lg:col-span-7 flex flex-col gap-gutter-desktop">
+<!-- Card 1: Stock Mínimo y Reabastecimiento -->
+<section class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">inventory</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Políticas de Stock Mínimo y Reabastecimiento Automático</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Automatiza umbrales de reorden y pedidos preventivos.</p>
+</div>
+</div>
+<span class="px-space-sm py-space-xs rounded-full bg-primary/10 text-primary font-label-sm text-label-sm shrink-0">Alta Prioridad</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md pt-space-xs">
+<!-- Threshold Input -->
+<div class="flex flex-col gap-space-xs p-space-md rounded-lg bg-surface-container-low">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="stock-bajo-global">Umbral Stock Bajo Global</label>
+<button class="text-on-surface-variant hover:text-on-surface" title="Cantidad predeterminada para detonar advertencia amarilla si el producto no tiene umbral personalizado." type="button">
+<span class="material-symbols-outlined text-[16px]">info</span>
+</button>
+</div>
+<div class="relative flex items-center">
+<input class="w-full h-10 px-space-md rounded-lg bg-surface-container-lowest text-on-surface font-data-mono text-data-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-primary pr-16" id="stock-bajo-global" min="1" type="number" value="10"/>
+<span class="absolute right-3 font-label-sm text-label-sm text-on-surface-variant">unidades</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Aplica a catálogo sin regla de familia específica.</p>
+</div>
+<!-- Quiebre Crítico -->
+<div class="flex flex-col gap-space-xs p-space-md rounded-lg bg-surface-container-low">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="quiebre-critico">Alerta Crítica de Quiebre</label>
+<span class="w-2 h-2 rounded-full bg-error animate-ping"></span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full h-10 px-space-md rounded-lg bg-surface-container-lowest text-on-surface font-data-mono text-data-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-error pr-16" id="quiebre-critico" min="0" type="number" value="3"/>
+<span class="absolute right-3 font-label-sm text-label-sm text-on-surface-variant">unidades</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Dispara aviso urgente en pantalla del TPV.</p>
+</div>
+</div>
+<!-- Sugerencia Algorítmica -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="calculo-reorden">Cálculo de Sugerencia de Reorden</label>
+<div class="relative">
+<select class="w-full h-10 px-space-md pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer" id="calculo-reorden">
+<option selected="" value="15days">Promedio de ventas últimos 15 días (Recomendado para abarrotes)</option>
+<option value="30days">Últimos 30 días ponderados con factor de estacionalidad semanal</option>
+<option value="runrate">Run-rate acelerado de 7 días (Alta rotación perecederos)</option>
+<option value="fixed">Cantidad fija preestablecida por proveedor</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<!-- Toggle Bloquear Venta Negativa -->
+<div class="flex items-center justify-between p-space-md rounded-lg bg-surface-container-low/70 hover:bg-surface-container-low transition-colors">
+<div class="flex flex-col pr-space-md">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Bloquear venta en TPV cuando el stock llegue a 0</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Evita ventas en negativo o discrepancias físicas durante el arqueo de caja nocturno.</span>
+</div>
+<!-- Toggle switch -->
+<label class="relative inline-flex items-center cursor-pointer shrink-0">
+<input checked="" class="sr-only peer" id="toggle-bloqueo-cero" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+</label>
+</div>
+</section>
+<!-- Card 2: Márgenes de Ganancia y Redondeo -->
+<section class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Márgenes de Ganancia y Redondeo de Precios</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Políticas de fijación automática de PVP ante variaciones de costo.</p>
+</div>
+</div>
+<span class="px-space-sm py-space-xs rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm shrink-0">Finanzas</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="margen-bruto-minimo">Margen Bruto Mínimo Recomendado</label>
+<div class="relative flex items-center">
+<input class="w-full h-10 px-space-md rounded-lg bg-surface-container-low text-on-surface font-data-mono text-data-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-primary pr-12" id="margen-bruto-minimo" max="100" min="5" type="number" value="35"/>
+<span class="absolute right-3 font-data-mono text-data-mono text-on-surface-variant font-bold">%</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-tertiary">warning</span>
+              Alerta en ficha si un PVP fija un margen inferior al 35%.
+            </span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="regla-redondeo">Regla de Redondeo en PVP</label>
+<div class="relative">
+<select class="w-full h-10 px-space-md pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer" id="regla-redondeo">
+<option selected="" value="psico">Terminación psicológica (.99 / .90)</option>
+<option value="decimo">Redondeo al décimo más cercano ($0.10)</option>
+<option value="entero">Redondeo a la unidad entera superior ($1.00)</option>
+<option value="ninguno">Sin redondeo (Céntimos exactos)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Ej: Costo $2.14 con 35% → $3.90 sugerido.</span>
+</div>
+</div>
+<!-- Toggle con Advertencia -->
+<div class="flex items-center justify-between p-space-md rounded-lg bg-surface-container-low/70">
+<div class="flex flex-col pr-space-md">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Actualizar PVP automáticamente si sube costo de proveedor</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Recalcula el precio de venta final en caja al confirmar una orden de compra recepcionada.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer shrink-0">
+<input class="sr-only peer" id="toggle-pvp-auto" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+</label>
+</div>
+<!-- Visual Margins Mini-Chart Spark -->
+<div class="p-space-md rounded-lg bg-surface-container flex items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">analytics</span>
+<span class="font-label-md text-label-md text-on-surface">Comportamiento estimado de márgenes</span>
+</div>
+<!-- Inline Sparkline SVG -->
+<div class="flex items-center gap-space-sm">
+<svg class="w-32 h-6 text-primary overflow-visible" fill="none" viewbox="0 0 120 24">
+<path d="M0 18 Q 20 12, 40 15 T 80 8 T 120 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.5"></path>
+<circle class="fill-primary" cx="120" cy="4" r="3"></circle>
+</svg>
+<span class="font-label-sm text-label-sm text-primary font-bold">+4.2% Eficiencia</span>
+</div>
+</div>
+</section>
+<!-- Card 3: Alertas de Caducidad y Productos Perecederos -->
+<section class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-tertiary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">event_busy</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Alertas de Caducidad y Productos Perecederos</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Prevención de mermas en lácteos, carnes frías, panadería y enlatados.</p>
+</div>
+</div>
+<span class="px-space-sm py-space-xs rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm shrink-0">Lotes &amp; FIFO</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="dias-anticipacion">Anticipación de Alerta Preventiva</label>
+<div class="relative flex items-center">
+<input class="w-full h-10 px-space-md rounded-lg bg-surface-container-low text-on-surface font-data-mono text-data-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-primary pr-14" id="dias-anticipacion" max="90" min="1" type="number" value="15"/>
+<span class="absolute right-3 font-label-sm text-label-sm text-on-surface-variant">días</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Aparece en la pestaña 'Por Vencer' del POS.</p>
+</div>
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="accion-vencimiento">Acción Sugerida Automática</label>
+<div class="relative">
+<select class="w-full h-10 px-space-md pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer" id="accion-vencimiento">
+<option selected="" value="promo20">Aplicar etiqueta "Pronto Consumo" (-20%)</option>
+<option value="promo50">Descuento de liquidación agresivo (-50%)</option>
+<option value="solo_notificar">Solo notificar en dashboard gerencial</option>
+<option value="bloquear">Bloquear lote para retiro y merma</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Imprime código de barra secundario con descuento.</p>
+</div>
+</div>
+<div class="flex items-center justify-between p-space-md rounded-lg bg-surface-container-low/70">
+<div class="flex flex-col pr-space-md">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Auditoría obligatoria de lote y fecha en recepción</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Impide dar de alta productos perecederos sin ingresar número de lote del fabricante y fecha de caducidad.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer shrink-0">
+<input checked="" class="sr-only peer" id="toggle-lote-obligatorio" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+</label>
+</div>
+</section>
+</div>
+<!-- COL 2: Hardware & Audit Logs (5 Cols) -->
+<div class="lg:col-span-5 flex flex-col gap-gutter-desktop">
+<!-- Card 4: Hardware Lector & Códigos de Barras -->
+<section class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">barcode_reader</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Gestión de Códigos &amp; Lectores</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Periféricos USB/Bluetooth y formateo de SKU.</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-space-sm py-space-xs rounded-full bg-primary/10 text-primary font-label-sm text-label-sm shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            Conectado
+          </span>
+</div>
+<!-- Active Scanner Hardware Pill -->
+<div class="p-space-md rounded-lg bg-surface-container-low flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[22px] mt-0.5">usb</span>
+<div class="flex flex-col gap-0.5">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Honeywell Voyager 1200g (Láser USB)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Puerto: COM3 emulado • 9600 baudios • Modo HID Teclado</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold mt-1">Tiempo de respuesta: 42ms (Óptimo)</span>
+</div>
+</div>
+<!-- SKU Generation Settings -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="sku-format">Máscara de SKU Interno Automático</label>
+<input class="w-full h-10 px-space-md rounded-lg bg-surface-container-low text-on-surface font-data-mono text-data-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-primary" id="sku-format" type="text" value="MS-[CAT:4]-[CORR:5]"/>
+<div class="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span>Previsualización muestra:</span>
+<span class="font-data-mono text-data-mono text-primary font-bold px-space-xs py-0.5 rounded bg-primary-fixed/20">MS-ABAR-00429</span>
+</div>
+</div>
+<!-- Simbología Supported Chips -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Simbologías Habilitadas para Decodificación</span>
+<div class="flex flex-wrap gap-space-xs pt-1">
+<button class="px-space-sm py-1 rounded-md bg-primary text-on-primary font-label-sm text-label-sm flex items-center gap-1 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[14px]">check</span> EAN-13
+            </button>
+<button class="px-space-sm py-1 rounded-md bg-primary text-on-primary font-label-sm text-label-sm flex items-center gap-1 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[14px]">check</span> UPC-A
+            </button>
+<button class="px-space-sm py-1 rounded-md bg-primary text-on-primary font-label-sm text-label-sm flex items-center gap-1 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[14px]">check</span> Code 128
+            </button>
+<button class="px-space-sm py-1 rounded-md bg-primary text-on-primary font-label-sm text-label-sm flex items-center gap-1 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[14px]">check</span> QR Code 2D
+            </button>
+<button class="px-space-sm py-1 rounded-md bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-high transition-colors" type="button">
+              + EAN-8
+            </button>
+</div>
+</div>
+<!-- Barcode Live Test Area -->
+<div class="p-space-md rounded-lg bg-surface-container flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Consola de Prueba de Lectura</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span> Esperando escaneo...
+            </span>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px]">barcode</span>
+<input class="w-full h-10 pl-10 pr-24 rounded-lg bg-surface-container-lowest text-on-surface font-data-mono text-data-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-primary" id="input-test-barcode" placeholder="Dispara el escáner aquí o digita un EAN..." type="text"/>
+<button class="absolute right-1 px-space-sm py-1 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-sm text-label-sm transition-colors" id="btn-simulate-scan" type="button">
+              Simular
+            </button>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant min-h-[18px] transition-all" id="test-barcode-feedback">
+            Última lectura: 7501055310883 • Galletas Marías 170g (0.12s)
+          </div>
+</div>
+</section>
+<!-- Card 5: Notificaciones y Auditoría -->
+<section class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">security</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Notificaciones &amp; Auditoría</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Trazabilidad de cambios y canales de alerta.</p>
+</div>
+</div>
+<span class="px-space-sm py-space-xs rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm shrink-0">Control Interno</span>
+</div>
+<!-- Notification Channels Checkboxes -->
+<div class="flex flex-col gap-space-sm">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Canales para Avisos de Stock Crítico</span>
+<label class="flex items-center gap-space-sm p-space-sm rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Campana del sistema en App Shell</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Alertas emergentes en la barra superior de todas las terminales.</span>
+</div>
+</label>
+<label class="flex items-center gap-space-sm p-space-sm rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Resumen nocturno por correo a Administradora</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">maria.gomez@mercadostock.com a las 21:30 hrs.</span>
+</div>
+</label>
+<label class="flex items-center gap-space-sm p-space-sm rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors">
+<input class="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Aviso sonoro audible en punto de venta (Bip de advertencia)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Emite tono suave al escanear la última unidad existente.</span>
+</div>
+</label>
+</div>
+<div class="h-px bg-surface-container"></div>
+<!-- Strict Audit Trail Toggle -->
+<div class="flex items-center justify-between p-space-md rounded-lg bg-surface-container-low/70">
+<div class="flex flex-col pr-space-md">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Bitácora de Auditoría Obligatoria</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Exigir motivo formal (Merma, Rotura, Donación, Descuadre Físico) en cualquier ajuste manual.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer shrink-0">
+<input checked="" class="sr-only peer" id="toggle-auditoria-estricta" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+</label>
+</div>
+</section>
+</div>
+</div>
+<!-- Operational Health & Category Distribution Overview (Visual Richness Bento) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop mt-gutter-desktop">
+<!-- Card metric 1 -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Reglas Activas</span>
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">14 / 14</span>
+<span class="font-body-sm text-body-sm text-primary flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+          Todas aplicadas con éxito
+        </span>
+</div>
+<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[32px]">rule</span>
+</div>
+</div>
+<!-- Card metric 2 -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Artículos Bajo Monitoreo</span>
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">2,481 SKUs</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+          98.2% con stock óptimo
+        </span>
+</div>
+<div class="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[32px]">category</span>
+</div>
+</div>
+<!-- Card metric 3 -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Mermas Evitadas (Este Mes)</span>
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">$1,240.00</span>
+<span class="font-body-sm text-body-sm text-primary flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+          +18.4% vs mes anterior
+        </span>
+</div>
+<div class="w-14 h-14 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[32px]">savings</span>
+</div>
+</div>
+</div>
+<!-- Persistent Sticky Bottom Save Footer -->
+<footer class="mt-space-xl p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between flex-wrap gap-space-md sticky bottom-4 z-30">
+<div class="flex items-center gap-space-md">
+<div class="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Hay cambios sin guardar en las reglas de margen y alertas</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Modificado hace 2 minutos. Las modificaciones se sincronizarán en caliente en las cajas registradoras.</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm ml-auto">
+<button class="px-space-md py-space-xs h-10 rounded-lg text-on-surface-variant hover:text-on-surface font-label-lg text-label-lg transition-colors" id="btn-cancel-bottom" type="button">
+        Restablecer Valores
+      </button>
+<button class="px-space-xl py-space-xs h-10 rounded-lg bg-primary hover:bg-primary-container text-on-primary transition-all font-label-lg text-label-lg shadow-sm flex items-center gap-space-xs active:scale-[0.98]" id="btn-save-bottom" type="button">
+<span class="material-symbols-outlined text-[20px]">save</span>
+<span>Guardar Cambios</span>
+</button>
+</div>
+</footer>
+<!-- Notification Toast Popup (Hidden by default) -->
+<div class="fixed bottom-20 right-8 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-space-sm p-space-md rounded-xl bg-inverse-surface text-inverse-on-surface shadow-xl" id="toast-success">
+<span class="material-symbols-outlined text-primary-fixed-dim text-[24px]">task_alt</span>
+<div class="flex flex-col pr-space-md">
+<span class="font-label-lg text-label-lg font-semibold">Configuración Guardada</span>
+<span class="font-body-sm text-body-sm text-surface-container-high">Las reglas fueron distribuidas a todas las terminales activas.</span>
+</div>
+<button class="text-inverse-on-surface/70 hover:text-inverse-on-surface p-1" id="toast-close" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<script>
+  // Tab Switcher Micro-interaction
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      tabButtons.forEach(btn => {
+        btn.classList.remove('bg-primary-container', 'text-on-primary-container', 'font-headline-sm');
+        btn.classList.add('text-on-surface-variant');
+      });
+      button.classList.add('bg-primary-container', 'text-on-primary-container', 'font-headline-sm');
+      button.classList.remove('text-on-surface-variant');
+    });
+  });
+
+  // Simulated Barcode Scanner Test
+  const testInput = document.getElementById('input-test-barcode');
+  const simBtn = document.getElementById('btn-simulate-scan');
+  const testFeedback = document.getElementById('test-barcode-feedback');
+
+  const sampleCodes = [
+    { code: '7501055310883', name: 'Galletas Marías 170g', ms: '38ms' },
+    { code: '7501030491028', name: 'Leche Entera Lala 1L', ms: '41ms' },
+    { code: '7501000111209', name: 'Aceite Vegetal 123 900ml', ms: '35ms' },
+    { code: 'MS-ABAR-00429', name: 'Arroz Extra Granos Seleccionados 1kg', ms: '29ms' }
+  ];
+
+  function runSimulatedScan() {
+    const randomItem = sampleCodes[Math.floor(Math.random() * sampleCodes.length)];
+    testInput.value = randomItem.code;
+    testFeedback.innerHTML = `<span class="text-primary font-semibold">✓ Lectura Exitosa:</span> ${randomItem.code} • ${randomItem.name} (${randomItem.ms})`;
+    testFeedback.classList.remove('text-on-surface-variant');
+    testFeedback.classList.add('text-primary');
+    testInput.classList.add('ring-2', 'ring-primary');
+    setTimeout(() => testInput.classList.remove('ring-2', 'ring-primary'), 600);
+  }
+
+  if (simBtn) {
+    simBtn.addEventListener('click', runSimulatedScan);
+  }
+
+  if (testInput) {
+    testInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        runSimulatedScan();
+      }
+    });
+  }
+
+  // Toast save confirmation feedback
+  const toast = document.getElementById('toast-success');
+  const saveButtons = [document.getElementById('btn-save-main'), document.getElementById('btn-save-bottom')];
+  const toastClose = document.getElementById('toast-close');
+
+  function showToast() {
+    if (!toast) return;
+    toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+    toast.classList.add('translate-y-0', 'opacity-100');
+    setTimeout(() => {
+      hideToast();
+    }, 4000);
+  }
+
+  function hideToast() {
+    if (!toast) return;
+    toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+    toast.classList.remove('translate-y-0', 'opacity-100');
+  }
+
+  saveButtons.forEach(btn => {
+    if (btn) btn.addEventListener('click', showToast);
+  });
+
+  if (toastClose) {
+    toastClose.addEventListener('click', hideToast);
+  }
+</script></main></div></body></html>

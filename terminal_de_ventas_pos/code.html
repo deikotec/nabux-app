@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#00174b", "on-background": "#131b2e", "on-secondary": "#ffffff", "surface-container-high": "#e2e7ff", "on-error-container": "#93000a", "tertiary-fixed-dim": "#ffb95f", "on-primary": "#ffffff", "tertiary-container": "#a36700", "on-tertiary-fixed-variant": "#653e00", "background": "#faf8ff", "inverse-primary": "#68dba9", "outline": "#6d7a72", "on-tertiary": "#ffffff", "on-primary-fixed-variant": "#005137", "secondary-fixed": "#dbe1ff", "surface-container-lowest": "#ffffff", "on-surface-variant": "#3d4a42", "on-secondary-fixed-variant": "#003ea8", "surface-dim": "#d2d9f4", "primary": "#006948", "surface-bright": "#faf8ff", "primary-fixed-dim": "#68dba9", "on-tertiary-container": "#fffbff", "surface-container-low": "#f2f3ff", "on-secondary-container": "#fefcff", "primary-fixed": "#85f8c4", "surface-variant": "#dae2fd", "error": "#ba1a1a", "outline-variant": "#bccac0", "inverse-surface": "#283044", "on-error": "#ffffff", "on-primary-fixed": "#002114", "surface-tint": "#006c4a", "on-primary-container": "#f5fff7", "inverse-on-surface": "#eef0ff", "surface-container": "#eaedff", "tertiary-fixed": "#ffddb8", "primary-container": "#00855d", "secondary-container": "#316bf3", "error-container": "#ffdad6", "secondary-fixed-dim": "#b4c5ff", "surface": "#faf8ff", "on-surface": "#131b2e", "secondary": "#0051d5", "surface-container-highest": "#dae2fd", "tertiary": "#825100", "on-tertiary-fixed": "#2a1700" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xl": "2rem", "margin": "1rem", "margin-desktop": "2rem", "space-md": "0.75rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "gutter-desktop": "1.5rem", "gutter": "1rem", "space-lg": "1.25rem" }, "fontFamily": { "headline-sm": [ "Plus Jakarta Sans" ], "label-md": [ "Plus Jakarta Sans" ], "data-mono": [ "Plus Jakarta Sans" ], "body-sm": [ "Plus Jakarta Sans" ], "headline-md": [ "Plus Jakarta Sans" ], "label-sm": [ "Plus Jakarta Sans" ], "body-md": [ "Plus Jakarta Sans" ], "display-lg": [ "Plus Jakarta Sans" ], "label-lg": [ "Plus Jakarta Sans" ], "headline-lg-mobile": [ "Plus Jakarta Sans" ], "headline-lg": [ "Plus Jakarta Sans" ], "body-lg": [ "Plus Jakarta Sans" ] }, "fontSize": { "headline-sm": [ "16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "600" } ], "label-md": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" } ], "data-mono": [ "13px", { "lineHeight": "18px", "fontWeight": "500" } ], "body-sm": [ "12px", { "lineHeight": "16px", "fontWeight": "400" } ], "headline-md": [ "20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "label-sm": [ "11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" } ], "body-md": [ "14px", { "lineHeight": "20px", "fontWeight": "400" } ], "display-lg": [ "36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "label-lg": [ "14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" } ], "headline-lg-mobile": [ "22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" } ], "headline-lg": [ "28px", { "lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "700" } ], "body-lg": [ "16px", { "lineHeight": "24px", "fontWeight": "400" } ] } } } }</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-space-md"><div class="flex flex-col gap-space-lg"><div class="px-space-md flex flex-col gap-space-xs"><div class="flex items-center gap-space-sm"><img alt="MercadoStock Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH7bVkzbJ8UQd4lf-1mcCDZKsL0s_I1vlDWuE1u3TRRIDYSOFOoO-3UMDSc_1vun7UHrkTjk0WGafEjFJZLve1vlF7qOjI6pRbxizMT6gULBBeOnZ8zJqH5FQDY0a-yGdyTjZhP6g-h2RjI9-KZ-v9JEvaetz9UTYUHiFBqVfmeV4SFdjVzjEfbNA7pamjmXBpJN7kEbcv-nfEAX5Ohcsn1D0e12uv28YDV88BDw_CYAkSU8lAy6dWcQ"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-primary tracking-tight">MercadoStock</span></div></div><div class="flex items-center"><span class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Sucursal Centro</span></div></div><nav class="flex flex-col gap-space-xs px-space-sm" data-active-classes="bg-primary-container text-on-primary-container font-headline-sm"><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">space_dashboard</span><span>Panel Principal</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="inventario-stock" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span>Inventario &amp; Stock</span></a><a aria-current="page" class="flex items-center justify-between px-space-md py-space-sm rounded-lg transition-colors bg-primary-container text-on-primary-container font-headline-sm" data-path="terminal-ventas" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[20px]">point_of_sale</span><span>Terminal POS</span></div><span class="font-data-mono text-data-mono px-space-xs rounded bg-surface-container-high text-on-surface-variant">F2</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="reportes-metricas" href="#"><span class="material-symbols-outlined text-[20px]">monitoring</span><span>Reportes &amp; Métricas</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="personal-usuarios" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span>Personal &amp; Usuarios</span></a></nav></div><div class="px-space-md flex flex-col gap-space-sm"><div class="p-space-md rounded-xl bg-surface-container flex flex-col gap-space-xs"><div class="flex items-center justify-between text-on-surface"><span class="font-label-md text-label-md">Estado de Red</span><span class="flex items-center gap-1 font-label-sm text-label-sm text-primary"><span class="w-2 h-2 rounded-full bg-primary"></span>En Línea</span></div><p class="font-body-sm text-body-sm text-on-surface-variant">Lector USB conectado y listo.</p></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter-desktop flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md flex-1 max-w-xl"><div class="relative w-full flex items-center"><span class="material-symbols-outlined absolute left-space-md text-on-surface-variant text-[20px]">search</span><input class="w-full pl-10 pr-16 py-space-xs h-10 rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" placeholder="Buscar producto, SKU o cliente..." readonly="" type="text"/><kbd class="absolute right-space-sm px-space-xs py-0.5 rounded bg-surface-container font-data-mono text-data-mono text-on-surface-variant shadow-sm">Ctrl+K</kbd></div><div class="hidden xl:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest shadow-sm shrink-0"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-sm text-label-sm text-on-surface-variant">Caja Abierta • Turno Mañana</span></div></div><div class="flex items-center gap-space-md shrink-0"><button class="flex items-center gap-space-xs px-space-md py-space-xs h-10 rounded-lg bg-primary hover:bg-primary-container text-on-primary transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span class="font-label-lg text-label-lg">Nueva Venta</span></button><button aria-label="Alertas de Stock" class="relative p-space-sm rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error"></span></button><div class="flex items-center gap-space-sm pl-space-xs"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN218IsFoFZrApifiVtMoyXAnrtnyfTaZxEc_90x67m0dFN2ukmBqPWI7waqd1kpcZ4HIoFCD72zCbx9jqd17ThSjqBJy9iznzRcY9bCiSrScqdKdqSC2d_kv7IQeEKap97lnwHQ0kWlrQg9JAJ2h10ZHpR989s8s-qKFYDjm8GPE33wPpt1EHWLbxE1sOMsPwtkcqHICC6c0J53G7X6mA-t2aveMlgy2PvQT-j5hLJsB62QhZtzPBEQ"/><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface leading-tight">María Gómez</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">Administradora</span></div></div></div></header><main class="relative pt-16 bg-surface w-full px-gutter-desktop min-h-screen"><div class="flex flex-col w-full pb-8">
+<!-- Top Operational Banner: Live Barcode & Hardware Status Strip -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm bg-surface-container px-space-lg py-space-xs rounded-xl shadow-sm mb-space-md">
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">Lector Láser Activo</span>
+</div>
+<span class="text-on-surface-variant/40">•</span>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-data-mono text-data-mono">
+<span class="material-symbols-outlined text-[18px] text-primary">barcode_scanner</span>
+<span>Puerto COM3 [9600 bps]</span>
+</div>
+<span class="text-on-surface-variant/40">•</span>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-secondary">print</span>
+<span>Térmica 80mm: En línea</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-space-xs bg-surface-container-lowest px-space-sm py-1 rounded-lg shadow-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Atajos:</span>
+<kbd class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-data-mono text-[11px] font-bold">F2 Buscar</kbd>
+<kbd class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-data-mono text-[11px] font-bold">F4 Cantidad</kbd>
+<kbd class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-data-mono text-[11px] font-bold">F8 Espera</kbd>
+<kbd class="px-1.5 py-0.5 rounded bg-primary text-on-primary font-data-mono text-[11px] font-bold">F10 Cobrar</kbd>
+</div>
+</div>
+</div>
+<!-- Main POS Grid: 60% Catalog / Speed-Pad & 40% Cart & Checkout Terminal -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-desktop items-start">
+<!-- LEFT PANEL: High Velocity Product Catalog & Scanner Interface (7 Cols ~58-60%) -->
+<div class="lg:col-span-7 flex flex-col gap-space-md">
+<!-- Jumbo Scanner Input -->
+<div class="relative bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-center gap-space-sm transition-all focus-within:shadow-md">
+<div class="flex items-center justify-center w-12 h-12 rounded-lg bg-surface-container text-primary shrink-0">
+<span class="material-symbols-outlined text-[28px]">qr_code_scanner</span>
+</div>
+<div class="flex-1 relative">
+<label class="block font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant" for="pos-barcode-search">Entrada Rápida / Búsqueda Express</label>
+<input autofocus="" class="w-full bg-transparent text-on-surface font-headline-sm text-headline-sm placeholder:text-on-surface-variant/60 focus:outline-none" id="pos-barcode-search" placeholder="Escanee código de barras o escriba nombre del producto (F2)..." type="text"/>
+</div>
+<div class="flex items-center gap-space-xs pr-space-xs shrink-0">
+<span class="hidden sm:inline-flex items-center gap-1 px-space-sm py-1 rounded bg-surface-container text-on-surface-variant font-data-mono text-data-mono">
+<span>F2</span>
+</span>
+<button class="p-2 rounded-lg bg-surface-container hover:bg-surface-variant text-on-surface transition-colors" title="Borrar campo" type="button">
+<span class="material-symbols-outlined text-[20px]">backspace</span>
+</button>
+</div>
+</div>
+<!-- Quick Category Pills -->
+<div class="flex items-center gap-space-xs overflow-x-auto pb-1 scrollbar-none">
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-primary text-on-primary font-label-md text-label-md shrink-0 shadow-sm transition-transform active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">grid_view</span>
+<span>Todos</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest text-on-surface hover:bg-surface-container font-label-md text-label-md shrink-0 shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-tertiary">star</span>
+<span>Favoritos / Rápidos</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest text-on-surface hover:bg-surface-container font-label-md text-label-md shrink-0 shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">local_drink</span>
+<span>Bebidas</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest text-on-surface hover:bg-surface-container font-label-md text-label-md shrink-0 shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-tertiary">cookie</span>
+<span>Snacks</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest text-on-surface hover:bg-surface-container font-label-md text-label-md shrink-0 shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-tertiary">bakery_dining</span>
+<span>Panadería</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-lowest text-on-surface hover:bg-surface-container font-label-md text-label-md shrink-0 shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">kitchen</span>
+<span>Abarrotes</span>
+</button>
+</div>
+<!-- Quick-Pick Product Mosaic Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-space-sm">
+<!-- Product Card 1 -->
+<div class="group relative flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-sm shadow-sm hover:shadow-md transition-all cursor-pointer">
+<div class="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container mb-space-xs">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Modern dairy milk carton jug cold fresh packaging studio product shot crisp clean white background local grocery market soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDewzPAvmRXdd7u7Vwi-8DTVNEY4ZvWnzqnsVLSAjLJybvV1EsEEMkk3g44Vp4dKjCJ6vMTRh_iCxR3hgeemzwV1D2u6bqey-EKldpOF4bd_PGnE9GJPn0JSX-NRSsiaZi3EHvtRCmVAIiPS2SG4sTK5LV72VqWnCh1DfHj0bDYzJiHAGVtnMx32oM2IwpEU2VVISvfnNasedyy1KLygcK9ubv-3cenQDBT0wSoCDZUqpWhLGFl4OnBgg"/>
+<span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-[10px] shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> 24 disp.
+            </span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">SKU: LCH-0128</span>
+<span class="font-headline-sm text-[13px] leading-tight text-on-surface line-clamp-2">Leche Entera 1L Tetra</span>
+</div>
+<div class="flex items-center justify-between mt-space-sm pt-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">$1.35</span>
+<button aria-label="Agregar Leche" class="w-8 h-8 rounded-lg bg-surface-container group-hover:bg-primary group-hover:text-on-primary text-on-surface flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="group relative flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-sm shadow-sm hover:shadow-md transition-all cursor-pointer">
+<div class="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container mb-space-xs">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Golden vegetable cooking oil bottle commercial product packshot 900ml amber glow pure translucent studio clean light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCr5AZl0a5jBrqxCStBC54HC6_-RuuiZmkKzgcZibOP2fvYl3V20bTKSUFlmuORmwgsDlQOu8mTrNmkRpYI6Sn0TxxJpLNeqjTPtD3B7DnU_qqxYv8WDeYnwetC9VvqxNCr55Tj4n3MRdE9iCda6nFQzcibyva9lC4jSE5KKAkfxGZP5EWiAUV0h-jawd1GuQvEjIuBagFWbcTnljqfCRrt4HXtNiXFQVVeWqSi_jTyhF414sQAYQaPIg"/>
+<span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-[10px] shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> 18 disp.
+            </span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">SKU: ACT-9040</span>
+<span class="font-headline-sm text-[13px] leading-tight text-on-surface line-clamp-2">Aceite Vegetal 900ml</span>
+</div>
+<div class="flex items-center justify-between mt-space-sm pt-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">$2.50</span>
+<button aria-label="Agregar Aceite" class="w-8 h-8 rounded-lg bg-surface-container group-hover:bg-primary group-hover:text-on-primary text-on-surface flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="group relative flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-sm shadow-sm hover:shadow-md transition-all cursor-pointer">
+<div class="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container mb-space-xs">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Chilled cola soda 2 liter bottle with condensation droplets refreshment beverage grocery shelf retail studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-96O7kiCNMHPhMZhIIw1zzzrZ_NAcHJqL3cONOnk2Nk0lM3WDUaPeAD4_D-CTL9LeUYr8xiSC1WkZ4GpIu_ikv3eQznz82YYJmt-7dzQvrA-pRzGt9-VNpaR_qHfugF7PqG_qVXHBXYNAb8Bd_IcRRigo9jdYwAiPIUhSSQ-bl2CekonNZcXHdC3OlwiFS922jMks8ZaBo3__Mq1gE7KFjCfu2F0C-tE42rMiyL9khQUCeMzBgWg6NA"/>
+<span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-[10px] shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> 32 disp.
+            </span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">SKU: BEB-2011</span>
+<span class="font-headline-sm text-[13px] leading-tight text-on-surface line-clamp-2">Refresco Cola 2L Botella</span>
+</div>
+<div class="flex items-center justify-between mt-space-sm pt-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">$2.40</span>
+<button aria-label="Agregar Refresco" class="w-8 h-8 rounded-lg bg-surface-container group-hover:bg-primary group-hover:text-on-primary text-on-surface flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="group relative flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-sm shadow-sm hover:shadow-md transition-all cursor-pointer">
+<div class="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container mb-space-xs">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Artisanal baked crusty sourdough bread loaf golden crisp bakery retail market warm inviting counter lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9ugqIDe_i6kA6wnYqowmoUS3EnhlBm8WD5Dp-5RtuLgv0621yZY3Pjg2pZt5hR1AAlyfXdAvOhH-DUayP8XwOPqhJxRXtqbuV7AI8uQHNpHAqFLx3y-YfLGSnox_lz4R_XAHvftBj89PmihwwS_lM4LyIpDkXO3VmK1fA0qsra6Hhb6R_79jCtScJUmG8vlYoJ00GFeCey4-gglIh8Igdm3XmktZ-aOrDwjxqTCs6MowtnOZcKTSMQA"/>
+<span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-[10px] shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> 6 disp.
+            </span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">SKU: PAN-0004</span>
+<span class="font-headline-sm text-[13px] leading-tight text-on-surface line-clamp-2">Pan Rústico Artesanal</span>
+</div>
+<div class="flex items-center justify-between mt-space-sm pt-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">$1.80</span>
+<button aria-label="Agregar Pan" class="w-8 h-8 rounded-lg bg-surface-container group-hover:bg-primary group-hover:text-on-primary text-on-surface flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+</div>
+<!-- Product Card 5 -->
+<div class="group relative flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-sm shadow-sm hover:shadow-md transition-all cursor-pointer">
+<div class="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container mb-space-xs">
+<div class="w-full h-full flex flex-col items-center justify-center bg-surface-container-high text-secondary">
+<span class="material-symbols-outlined text-[42px]">egg</span>
+</div>
+<span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-[10px] shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> 40 doc.
+            </span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">SKU: HUE-0012</span>
+<span class="font-headline-sm text-[13px] leading-tight text-on-surface line-clamp-2">Huevos Granja Docena</span>
+</div>
+<div class="flex items-center justify-between mt-space-sm pt-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">$3.20</span>
+<button class="w-8 h-8 rounded-lg bg-surface-container group-hover:bg-primary group-hover:text-on-primary text-on-surface flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+</div>
+<!-- Product Card 6 -->
+<div class="group relative flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-sm shadow-sm hover:shadow-md transition-all cursor-pointer">
+<div class="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container mb-space-xs">
+<div class="w-full h-full flex flex-col items-center justify-center bg-surface-container-high text-primary">
+<span class="material-symbols-outlined text-[42px]">coffee</span>
+</div>
+<span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-[10px] shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> 15 disp.
+            </span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">SKU: CAF-5020</span>
+<span class="font-headline-sm text-[13px] leading-tight text-on-surface line-clamp-2">Café Tostado Molido 250g</span>
+</div>
+<div class="flex items-center justify-between mt-space-sm pt-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">$4.10</span>
+<button class="w-8 h-8 rounded-lg bg-surface-container group-hover:bg-primary group-hover:text-on-primary text-on-surface flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+</div>
+<!-- Product Card 7 -->
+<div class="group relative flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-sm shadow-sm hover:shadow-md transition-all cursor-pointer">
+<div class="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container mb-space-xs">
+<div class="w-full h-full flex flex-col items-center justify-center bg-surface-container-high text-tertiary">
+<span class="material-symbols-outlined text-[42px]">cookie</span>
+</div>
+<span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-[10px] shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> 3 disp.
+            </span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">SKU: SNK-3001</span>
+<span class="font-headline-sm text-[13px] leading-tight text-on-surface line-clamp-2">Galletas Chocolate Pack</span>
+</div>
+<div class="flex items-center justify-between mt-space-sm pt-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">$1.10</span>
+<button class="w-8 h-8 rounded-lg bg-surface-container group-hover:bg-primary group-hover:text-on-primary text-on-surface flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+</div>
+<!-- Quick Open Product Action Card -->
+<div class="flex flex-col justify-between bg-surface-container p-space-sm rounded-xl shadow-sm hover:bg-surface-variant/70 transition-colors cursor-pointer group">
+<div class="flex flex-col items-center justify-center h-28 rounded-lg bg-surface-container-lowest/80 text-primary group-hover:scale-102 transition-transform">
+<span class="material-symbols-outlined text-[36px]">point_of_sale</span>
+<span class="font-label-sm text-[11px] text-on-surface-variant mt-1 text-center font-bold uppercase">Monto Libre</span>
+</div>
+<div class="flex flex-col mt-space-xs text-center">
+<span class="font-headline-sm text-[13px] text-on-surface">Venta no catalogada</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">Digitar precio directo</span>
+</div>
+<button class="w-full mt-space-sm py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md flex items-center justify-center gap-1" type="button">
+<span class="material-symbols-outlined text-[16px]">edit_note</span>
+<span>Monto (F3)</span>
+</button>
+</div>
+</div>
+<!-- Quick Metrics Strip -->
+<div class="grid grid-cols-3 gap-space-sm mt-space-xs">
+<div class="flex items-center gap-space-sm p-space-sm rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[22px]">shopping_bag</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Ventas Hoy</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">78 tickets</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm p-space-sm rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Efectivo en Caja</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">$1,420.50</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm p-space-sm rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[22px]">pause_circle</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Tickets en Pausa</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">2 clientes</span>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT PANEL: Current Ticket & Rapid Checkout Pane (5 Cols ~40-42%) -->
+<div class="lg:col-span-5 flex flex-col gap-space-md">
+<div class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden flex flex-col">
+<!-- Ticket Header -->
+<div class="p-space-md bg-surface-container-low flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">Ticket #T-00482</h2>
+</div>
+<div class="flex items-center gap-space-xs bg-surface-container px-space-sm py-0.5 rounded-full text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">account_circle</span>
+<span>Cajera: María G.</span>
+</div>
+</div>
+<!-- Customer Assignment Field -->
+<div class="mt-space-xs flex items-center justify-between gap-space-sm bg-surface-container-lowest p-space-xs rounded-xl shadow-sm">
+<div class="flex items-center gap-space-xs pl-space-xs min-w-0 flex-1">
+<span class="material-symbols-outlined text-[20px] text-primary shrink-0">person</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[10px] text-on-surface-variant uppercase">Cliente Asignado</span>
+<span class="font-label-md text-label-md text-on-surface truncate">Cliente Mostrador / Ocasional</span>
+</div>
+</div>
+<button class="px-space-sm py-1 rounded-lg bg-surface-container hover:bg-surface-variant text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors shrink-0" type="button">
+<span class="material-symbols-outlined text-[16px]">badge</span>
+<span>RUT / DNI</span>
+</button>
+</div>
+</div>
+<!-- Ticket Cart Items List (High Density POS Table) -->
+<div class="flex flex-col divide-y-0 max-h-[310px] overflow-y-auto px-space-md py-space-xs">
+<!-- Item 1: Leche 1L -->
+<div class="py-space-sm flex items-center justify-between gap-space-sm group">
+<div class="flex flex-col min-w-0 flex-1">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Leche Entera 1L Tetra</span>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-data-mono text-data-mono">
+<span>$1.35 c/u</span>
+<span>•</span>
+<span class="text-primary font-bold">Stock OK</span>
+</div>
+</div>
+<!-- Quantity Control -->
+<div class="flex items-center gap-1 bg-surface-container rounded-lg p-0.5">
+<button aria-label="Disminuir" class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-8 text-center font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono">2</span>
+<button aria-label="Aumentar" class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<!-- Row Subtotal & Delete -->
+<div class="flex items-center gap-space-sm pl-space-xs text-right">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono w-14">$2.70</span>
+<button class="text-on-surface-variant/40 hover:text-error transition-colors p-1" title="Eliminar ítem" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+<div class="w-full h-[1px] bg-surface-container-high/60 my-0.5"></div>
+<!-- Item 2: Aceite 900ml -->
+<div class="py-space-sm flex items-center justify-between gap-space-sm group">
+<div class="flex flex-col min-w-0 flex-1">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Aceite Vegetal 900ml</span>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-data-mono text-data-mono">
+<span>$2.50 c/u</span>
+<span>•</span>
+<span class="text-primary font-bold">Stock OK</span>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-8 text-center font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono">1</span>
+<button class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<div class="flex items-center gap-space-sm pl-space-xs text-right">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono w-14">$2.50</span>
+<button class="text-on-surface-variant/40 hover:text-error transition-colors p-1" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+<div class="w-full h-[1px] bg-surface-container-high/60 my-0.5"></div>
+<!-- Item 3: Refresco Cola 2L -->
+<div class="py-space-sm flex items-center justify-between gap-space-sm group">
+<div class="flex flex-col min-w-0 flex-1">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Refresco Cola 2L Botella</span>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-data-mono text-data-mono">
+<span>$2.40 c/u</span>
+<span>•</span>
+<span class="text-primary font-bold">Stock OK</span>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-8 text-center font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono">3</span>
+<button class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<div class="flex items-center gap-space-sm pl-space-xs text-right">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono w-14">$7.20</span>
+<button class="text-on-surface-variant/40 hover:text-error transition-colors p-1" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+<div class="w-full h-[1px] bg-surface-container-high/60 my-0.5"></div>
+<!-- Item 4: Pan Artesanal -->
+<div class="py-space-sm flex items-center justify-between gap-space-sm group">
+<div class="flex flex-col min-w-0 flex-1">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Pan Rústico Artesanal</span>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-data-mono text-data-mono">
+<span>$1.80 c/u</span>
+<span>•</span>
+<span class="text-tertiary font-bold">Bajo Stock</span>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-8 text-center font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono">1</span>
+<button class="w-7 h-7 rounded bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<div class="flex items-center gap-space-sm pl-space-xs text-right">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface font-data-mono w-14">$1.80</span>
+<button class="text-on-surface-variant/40 hover:text-error transition-colors p-1" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Totals & Price Breakdown Card -->
+<div class="bg-surface-container-low p-space-md flex flex-col gap-space-xs">
+<div class="flex justify-between items-center text-on-surface-variant font-body-md text-body-md">
+<span>Subtotal (4 artículos)</span>
+<span class="font-data-mono font-bold text-on-surface">$14.20</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant font-body-md text-body-md">
+<span>Impuesto / IVA (19%)</span>
+<span class="font-data-mono font-bold text-on-surface">$2.70</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant font-body-md text-body-md">
+<span class="flex items-center gap-1">
+<span>Descuento / Cupón</span>
+<button class="text-primary hover:underline text-[12px] font-label-sm" type="button">(Agregar)</button>
+</span>
+<span class="font-data-mono font-bold text-primary">$0.00</span>
+</div>
+<!-- Jumbo Total Hero Display -->
+<div class="mt-space-xs pt-space-sm flex items-baseline justify-between bg-surface-container-lowest p-space-md rounded-xl shadow-sm">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">TOTAL A COBRAR</span>
+<span class="font-body-sm text-[12px] text-primary font-medium">Moneda: USD ($)</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary font-bold tracking-tight">
+              $16.90
+            </div>
+</div>
+</div>
+<!-- Payment Method Tabs & Quick Cash Calculator -->
+<div class="p-space-md bg-surface-container-lowest flex flex-col gap-space-sm">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Forma de Pago Principal</label>
+<div class="grid grid-cols-3 gap-space-xs">
+<button class="flex flex-col items-center justify-center p-space-xs py-2 rounded-xl bg-primary text-on-primary font-label-md text-label-md shadow-sm transition-transform active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+<span class="mt-0.5">Efectivo</span>
+</button>
+<button class="flex flex-col items-center justify-center p-space-xs py-2 rounded-xl bg-surface-container text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[22px] text-secondary">credit_card</span>
+<span class="mt-0.5">Tarjeta</span>
+</button>
+<button class="flex flex-col items-center justify-center p-space-xs py-2 rounded-xl bg-surface-container text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[22px] text-tertiary">qr_code_2</span>
+<span class="mt-0.5">QR / Móvil</span>
+</button>
+</div>
+<!-- Cash Suggestion & Real-time Change Indicator -->
+<div class="bg-surface-container p-space-sm rounded-xl flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Billetes Recibidos Rápidos:</span>
+<span class="font-data-mono text-[11px] text-primary font-bold">Total: $16.90</span>
+</div>
+<div class="grid grid-cols-4 gap-space-xs">
+<button class="py-1 rounded-lg bg-surface-container-lowest hover:bg-primary-container hover:text-on-primary-container text-on-surface font-data-mono text-data-mono font-bold shadow-sm transition-colors" type="button">Exacto</button>
+<button class="py-1 rounded-lg bg-primary-container text-on-primary-container font-data-mono text-data-mono font-bold shadow-sm ring-2 ring-primary" type="button">$20.00</button>
+<button class="py-1 rounded-lg bg-surface-container-lowest hover:bg-primary-container hover:text-on-primary-container text-on-surface font-data-mono text-data-mono font-bold shadow-sm transition-colors" type="button">$50.00</button>
+<button class="py-1 rounded-lg bg-surface-container-lowest hover:bg-primary-container hover:text-on-primary-container text-on-surface font-data-mono text-data-mono font-bold shadow-sm transition-colors" type="button">$100.00</button>
+</div>
+<!-- Dynamic Change Pill -->
+<div class="mt-space-xs p-space-xs px-space-sm rounded-lg bg-primary-fixed text-on-primary-fixed flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-space-xs font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]">savings</span>
+<span>Paga con $20.00</span>
+</div>
+<div class="font-headline-sm text-headline-sm font-bold text-on-primary-fixed-variant">
+                Vuelto: $3.10
+              </div>
+</div>
+</div>
+<!-- Primary Massive POS Action Button -->
+<button class="w-full h-14 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-headline-md text-headline-md font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-between px-space-lg active:scale-[0.99]" type="button">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[28px]">receipt_long</span>
+<span>Cobrar e Imprimir Ticket</span>
+</div>
+<kbd class="px-space-sm py-1 rounded bg-on-primary/20 text-on-primary font-data-mono text-data-mono">F10</kbd>
+</button>
+<!-- Secondary Auxiliary Actions Grid -->
+<div class="grid grid-cols-3 gap-space-xs pt-space-xs">
+<button class="py-2 px-space-xs rounded-lg bg-surface-container hover:bg-surface-variant text-on-surface font-label-sm text-label-sm flex items-center justify-center gap-1 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">pause</span>
+<span class="truncate">En Espera (F8)</span>
+</button>
+<button class="py-2 px-space-xs rounded-lg bg-surface-container hover:bg-surface-variant text-on-surface font-label-sm text-label-sm flex items-center justify-center gap-1 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">percent</span>
+<span class="truncate">Descuento</span>
+</button>
+<button class="py-2 px-space-xs rounded-lg bg-error-container hover:bg-error text-on-error-container hover:text-on-error font-label-sm text-label-sm flex items-center justify-center gap-1 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">close</span>
+<span class="truncate">Anular</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// Las reglas consultan Firestore para validar membresía y permisos del negocio.
+// En el primer deploy, la CLI pedirá autorizar a Storage para leer Firestore: acepta.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function memberPath(bid) {
+      return /databases/(default)/documents/businesses/$(bid)/members/$(request.auth.uid);
+    }
+    function isMember(bid) {
+      return signedIn() && firestore.exists(memberPath(bid)) && firestore.get(memberPath(bid)).data.status == 'active';
+    }
+    function can(bid, perm) {
+      return isMember(bid)
+        && (firestore.get(memberPath(bid)).data.role in ['owner', 'admin']
+            || perm in firestore.get(memberPath(bid)).data.permissions);
+    }
+    function validImage() {
+      return request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+    }
+
+    // Fotos de productos
+    match /businesses/{bid}/products/{allPaths=**} {
+      allow read: if isMember(bid);
+      allow create, update: if can(bid, 'inventory') && validImage();
+      allow delete: if can(bid, 'inventory');
+    }
+
+    // Logo y marca del negocio
+    match /businesses/{bid}/branding/{allPaths=**} {
+      allow read: if isMember(bid);
+      allow create, update: if can(bid, 'settings') && validImage();
+      allow delete: if can(bid, 'settings');
+    }
+
+    // Foto de perfil de cada usuario
+    match /users/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == userId && validImage();
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+  }
+}
