@@ -24,6 +24,7 @@ const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const StaffPage = lazy(() => import('@/features/staff/StaffPage'));
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'));
+const LandingPage = lazy(() => import('@/features/landing/LandingPage'));
 
 function Page({ children, perm }: { children: ReactNode; perm?: Permission }) {
   const content = <Suspense fallback={<PageLoader />}>{children}</Suspense>;
@@ -43,13 +44,15 @@ export default function App() {
                 <CatalogProvider>
                   <CashProvider>
                     <Routes>
+                      <Route path="/inicio" element={<Page><LandingPage /></Page>} />
                       <Route element={<PublicOnly />}>
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/registro" element={<RegisterPage />} />
                         <Route path="/recuperar" element={<ForgotPasswordPage />} />
                       </Route>
 
-                      <Route element={<RequireAuth />}>
+                      {/* Sin sesión, la raíz muestra la landing en vez de mandar al login. */}
+                      <Route element={<RequireAuth landing={<Page><LandingPage /></Page>} />}>
                         <Route path="/bienvenida" element={<OnboardingPage />} />
                         <Route element={<RequireBusiness />}>
                           <Route element={<AppLayout />}>

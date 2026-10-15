@@ -8,12 +8,15 @@ import type { Permission } from '@/types';
 import { Button, EmptyState, MenuItem, PageLoader } from '@/components/ui';
 import { Logo } from '@/components/layout/Logo';
 
-/** Solo para usuarios con sesión iniciada. */
-export function RequireAuth() {
+/** Solo para usuarios con sesión iniciada. Sin sesión, la raíz muestra `landing` (si se da) y el resto va al login. */
+export function RequireAuth({ landing }: { landing?: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <FullScreenLoader />;
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!user) {
+    if (landing && location.pathname === '/') return <>{landing}</>;
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
   return <Outlet />;
 }
 

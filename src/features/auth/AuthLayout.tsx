@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { BarChart3, Boxes, CloudOff, ShieldCheck, ShoppingCart, Users } from 'lucide-react';
 import { APP_NAME, APP_TAGLINE } from '@/config/app';
 import { Logo } from '@/components/layout/Logo';
@@ -17,7 +18,9 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
       <div className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-[#00704c] to-[#004d35] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute -top-32 -right-32 size-96 rounded-full bg-primary-fixed/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -left-20 size-[28rem] rounded-full bg-secondary-container/20 blur-3xl" />
-        <Logo light />
+        <Link to="/" className="relative w-fit" aria-label="Volver al inicio">
+          <Logo light />
+        </Link>
         <div className="relative flex max-w-lg flex-col gap-8">
           <div className="flex flex-col gap-3">
             <h1 className="text-display-lg">{APP_TAGLINE}.</h1>
@@ -46,7 +49,9 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
 
       <div className="flex flex-col items-center justify-center px-5 py-10 sm:px-10">
         <div className="flex w-full max-w-md flex-col gap-6">
-          <Logo className="lg:hidden" />
+          <Link to="/" className="w-fit lg:hidden" aria-label="Volver al inicio">
+            <Logo />
+          </Link>
           <div className="flex flex-col gap-1">
             <h2 className="text-headline-lg">{title}</h2>
             {subtitle && <p className="text-body-md text-on-surface-variant">{subtitle}</p>}
