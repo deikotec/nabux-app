@@ -57,6 +57,11 @@ export interface DashboardMetrics {
   seriesCount: number;
   bestDay: DaySeriesPoint | null;
   peakHour: { hour: number; count: number; total: number } | null;
+  /** Ventas completadas del período por hora del día (0–23). */
+  hourly: { hour: number; count: number; total: number }[];
+  /** Utilidad bruta (venta neta − costo) y margen sobre la venta neta (null sin ventas). */
+  profit: number;
+  marginPct: number | null;
   /** Solo para "Hoy". */
   projection: { projected: number; perHour: number; ticketsPerHour: number; closed: boolean } | null;
   /** Promedio diario (semana / mes). */
@@ -170,6 +175,9 @@ export function useDashboardMetrics(preset: DashPreset): DashboardMetrics {
     const peak = hours.reduce((b, h) => (h.count > b.count || (h.count === b.count && h.total > b.total) ? h : b), hours[0]);
     const peakHour = peak.count > 0 ? peak : null;
 
+    const profit = current.reduce((a, s) => a + (Number(s.profit) || 0), 0);
+    const net = current.reduce((a, s) => a + (Number(s.subtotal) || 0), 0);
+
     // Proyección al cierre (solo hoy): ritmo por hora desde la primera venta × horas restantes hasta el cierre.
     let projection: DashboardMetrics['projection'] = null;
     if (preset === 'today' && count > 0) {
@@ -226,6 +234,9 @@ export function useDashboardMetrics(preset: DashPreset): DashboardMetrics {
       seriesCount,
       bestDay,
       peakHour,
+      hourly: hours,
+      profit,
+      marginPct: net > 0 ? (profit / net) * 100 : null,
       projection,
       avgPerDay,
       categories

@@ -15,7 +15,7 @@ const UNIT: Record<Granularity, { singular: string; plural: string; best: string
   week: { singular: 'semana', plural: 'semanas', best: 'Mejor semana', subtitle: 'Evolución semanal de ventas vs ganancia neta' }
 };
 
-function GoalForm({ goal, currencySymbol, onSave }: { goal: number | null; currencySymbol: string; onSave: (v: number | null) => void }) {
+export function GoalForm({ goal, currencySymbol, onSave }: { goal: number | null; currencySymbol: string; onSave: (v: number | null) => void }) {
   const [value, setValue] = useState<number | ''>(goal ?? '');
   const submit = (e: FormEvent) => {
     e.preventDefault();

@@ -11,6 +11,15 @@ export const ROLE_LABELS: Record<Role, string> = {
   warehouse: 'Bodeguero / Almacén'
 };
 
+/** Rol en pocas letras (barra superior del móvil). */
+export const ROLE_SHORT: Record<Role, string> = {
+  owner: 'Propietario',
+  admin: 'Admin',
+  manager: 'Supervisor',
+  cashier: 'Cajero',
+  warehouse: 'Almacén'
+};
+
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   owner: 'Control total del negocio',
   admin: 'Acceso total y finanzas',

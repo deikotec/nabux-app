@@ -6,7 +6,8 @@ import type { Product, Supplier } from '@/types';
 /* Filtros y orden                                                     */
 /* ------------------------------------------------------------------ */
 
-export type StatusFilter = 'all' | 'ok' | 'low' | 'out' | 'inactive';
+/** `alert`: por reponer (en o bajo el mínimo, incluidos los agotados). */
+export type StatusFilter = 'all' | 'alert' | 'ok' | 'low' | 'out' | 'inactive';
 export type SortKey = 'name' | 'stock' | 'margin' | 'recent';
 /** Filtro de IVA: todos, solo exentos o solo gravados. */
 export type TaxFilter = '' | 'exempt' | 'taxed';
@@ -35,6 +36,7 @@ export function taxOptions(taxName: string): { value: TaxFilter; label: string }
 
 export const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
+  { value: 'alert', label: 'Por reponer' },
   { value: 'ok', label: 'Óptimo' },
   { value: 'low', label: 'Por agotarse' },
   { value: 'out', label: 'Agotado' },
@@ -53,6 +55,11 @@ export const PAGE_SIZES = [10, 25, 50, 100];
 /** Traduce `?estado=` de la URL al filtro de estado. */
 export function statusFromParam(value: string | null): StatusFilter | null {
   switch (normalize(value)) {
+    case 'reponer':
+    case 'por-reponer':
+    case 'alerta':
+    case 'alertas':
+      return 'alert';
     case 'bajo':
     case 'low':
     case 'por-agotarse':
@@ -88,6 +95,8 @@ export function filterProducts(products: Product[], f: Filters): Product[] {
   return products.filter((p) => {
     if (f.status === 'inactive') {
       if (isActive(p)) return false;
+    } else if (f.status === 'alert') {
+      if (!isActive(p) || stockStatus(p) === 'ok') return false;
     } else if (f.status !== 'all') {
       if (!isActive(p) || stockStatus(p) !== f.status) return false;
     }

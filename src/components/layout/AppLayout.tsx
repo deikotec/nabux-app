@@ -1,25 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import {
-  AlertTriangle,
-  Bell,
-  Building2,
-  Check,
-  ChevronDown,
-  CloudOff,
-  LogOut,
-  Plus,
-  Search,
-  UserCircle,
-  Wallet,
-  X
-} from 'lucide-react';
+import { AlertTriangle, Bell, Building2, Check, ChevronDown, CloudOff, LogOut, Plus, Search, UserCircle, Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useCash } from '@/contexts/CashContext';
 import { useCatalog } from '@/contexts/CatalogContext';
 import { useOnline } from '@/hooks/data';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useIsDesktop, useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROLE_LABELS } from '@/config/app';
 import { formatTime } from '@/lib/format';
 import { cn, productMatches } from '@/lib/utils';
@@ -27,15 +14,18 @@ import { Avatar, Button, Kbd, MenuItem, Popover, ProductThumb, StatusDot, StockB
 import { LogoMark } from './Logo';
 import { NAV_ITEMS } from './nav';
 import { BottomNav } from './BottomNav';
+import { MobileMenu, MobileTopbar } from './MobileShell';
 
 export function AppLayout() {
-  const [drawer, setDrawer] = useState(false);
+  const desktop = useIsDesktop();
+  const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
   const location = useLocation();
   const navigate = useNavigate();
   const { can } = useBusiness();
   const canPos = can('pos');
 
-  useEffect(() => setDrawer(false), [location.pathname]);
+  useEffect(() => setMenu(false), [location.pathname, desktop]);
 
   // Atajo global: F2 → Terminal POS
   useEffect(() => {
@@ -51,34 +41,25 @@ export function AppLayout() {
 
   return (
     <div className="min-h-dvh bg-surface">
-      {/* Sidebar escritorio */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-200/70 bg-surface-container-low lg:flex">
-        <SidebarContent />
-      </aside>
-
-      {/* Drawer móvil */}
-      {drawer && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 animate-fade-in bg-slate-900/40" onClick={() => setDrawer(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] animate-pop-in flex-col overflow-y-auto bg-surface-container-low pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] shadow-overlay">
-            <button className="absolute top-4 right-3 rounded-lg p-2 text-slate-500 hover:bg-surface-container" onClick={() => setDrawer(false)} aria-label="Cerrar menú">
-              <X className="size-5" />
-            </button>
-            <SidebarContent />
-          </aside>
-        </div>
+      {desktop ? (
+        <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200/70 bg-surface-container-low">
+          <SidebarContent />
+        </aside>
+      ) : (
+        // Móvil (ref/movil): menú de la cuenta, abierto desde la barra superior.
+        <MobileMenu open={menu} onClose={closeMenu} />
       )}
 
       <div className="lg:pl-64">
-        <Topbar />
+        {desktop ? <Topbar /> : <MobileTopbar onMenu={() => setMenu(true)} menuOpen={menu} />}
         {/* --bottom-nav: alto de la barra inferior del móvil (0 en escritorio). */}
         <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(2.5rem+var(--bottom-nav,0px))] sm:px-6">
           <Outlet />
         </main>
       </div>
 
-      {/* Navegación inferior (móvil/tablet); "Más" abre el menú lateral */}
-      <BottomNav onMore={() => setDrawer(true)} moreOpen={drawer} />
+      {/* Navegación inferior tipo app (móvil y tableta) */}
+      {!desktop && <BottomNav />}
     </div>
   );
 }
@@ -218,17 +199,9 @@ function Topbar() {
   const navigate = useNavigate();
   const online = useOnline();
 
+  // Solo escritorio: en el móvil la barra superior es MobileTopbar.
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200/60 bg-surface/85 px-4 backdrop-blur-xl sm:px-6">
-      {/* En móvil el menú está en la barra inferior ("Más"): aquí va el logo, que lleva al inicio. */}
-      <NavLink to="/" className="shrink-0 lg:hidden" aria-label="Ir al panel principal">
-        {business?.logoUrl ? (
-          <img src={business.logoUrl} alt="" className="size-9 rounded-xl bg-white object-contain" />
-        ) : (
-          <LogoMark className="size-9 rounded-xl" />
-        )}
-      </NavLink>
-
       <GlobalSearch />
 
       {can('pos') && (
@@ -241,7 +214,7 @@ function Topbar() {
           title={session ? 'Hacer corte de caja' : 'Abrir caja'}
         >
           <StatusDot tone={session ? 'success' : 'warning'} pulse={!!session} />
-          {session ? `Caja abierta · desde ${formatTime(session.openedAt)}` : 'Caja cerrada · Abrir'}
+          {session ? `${session.registerName ?? 'Caja'} abierta · desde ${formatTime(session.openedAt)}` : 'Caja cerrada · Abrir'}
         </button>
       )}
 

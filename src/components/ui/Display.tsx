@@ -295,7 +295,9 @@ export function PageLoader({ label = 'Cargando…' }: { label?: string }) {
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-lg bg-slate-100', className)} />;
+  // Si se pasa otro radio (ej. rounded-full para avatares), reemplaza al de base.
+  const ownRadius = /(^|\s)rounded(-|\s|$)/.test(className ?? '');
+  return <div className={cn('animate-pulse bg-slate-100', !ownRadius && 'rounded-lg', className)} />;
 }
 
 /* ---------- Avatar / miniaturas ---------- */

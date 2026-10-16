@@ -17,7 +17,7 @@ function useWidth<T extends HTMLElement>() {
 }
 
 /** Curva suave (monótona) a través de los puntos. */
-function smoothPath(points: [number, number][]) {
+export function smoothPath(points: [number, number][]) {
   if (points.length < 2) return points.length ? `M${points[0][0]},${points[0][1]}` : '';
   let d = `M${points[0][0]},${points[0][1]}`;
   for (let i = 0; i < points.length - 1; i++) {

@@ -7,10 +7,13 @@ import { useActiveBusiness } from '@/contexts/BusinessContext';
 import { useCatalog } from '@/contexts/CatalogContext';
 import { useFx } from '@/contexts/FxContext';
 import { useClosedCashSessions, useSalesRange } from '@/hooks/data';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { addDays, dayKey, endOfDay, fromInputDate, previousRange, rangeFromPreset, startOfDay, toInputDate, type DateRange } from '@/lib/dates';
-import { currencySymbol as symbolOf } from '@/lib/format';
+import { currencySymbol as symbolOf, formatNumber } from '@/lib/format';
 import { formatRate } from '@/lib/fx';
 import { errorMessage } from '@/lib/utils';
+import { MCard } from '@/components/mobile';
+import { copyText, whatsappUrl } from '@/features/staff/staffUtils';
 import {
   buildTimeSeries,
   compareLabel,
@@ -25,6 +28,8 @@ import {
   productPerformance,
   rangeDayCount,
   rateResolver,
+  sessionAuditStatus,
+  topProducts,
   salesByCashier,
   salesByCategory,
   salesByPaymentMethod,
@@ -46,7 +51,7 @@ import {
   salesDetailCsv,
   type CurrencyCsvOptions
 } from './exporters';
-import { compactAmount, type ReportFx } from './format';
+import { compactAmount, plural, type ReportFx } from './format';
 import { useDailyGoal, useFxHistory, useNow, useRangeMovements } from './hooks';
 import { CashClosings } from './components/CashClosings';
 import { CashierPerformance } from './components/CashierPerformance';
@@ -59,6 +64,7 @@ import { RateEvolution } from './components/RateEvolution';
 import { ReportsHeader, type CustomRangeInput, type ExportKind, type HeaderRate, type ReportPreset } from './components/ReportsHeader';
 import { TopProducts } from './components/TopProducts';
 import { TrafficHeatmap } from './components/TrafficHeatmap';
+import { ReportsMobile } from './ReportsMobile';
 
 /** Convierte el rango personalizado (yyyy-mm-dd) en fechas, ordenándolas y sin pasar de hoy. */
 function customToRange(c: CustomRangeInput): DateRange {
@@ -77,6 +83,7 @@ export default function ReportsPage() {
   const fx = useFx();
   const toast = useToast();
   const navigate = useNavigate();
+  const desktop = useIsDesktop();
   const now = useNow();
   const todayKey = dayKey(now);
   const hourKey = `${todayKey}-${now.getHours()}`;
@@ -229,6 +236,32 @@ export default function ReportsPage() {
     }
   };
 
+  /** Resumen en texto para WhatsApp u otra app (o copiado si el navegador no permite compartir). */
+  const shareSummary = async () => {
+    const top = topProducts(productStats, 'units', 3);
+    const lossTotal = summary.voidedAmount + shrink.amount;
+    const text = [
+      `${business.name} · ${rangeLabel}`,
+      `Ingresos: ${money(summary.revenue)}${dual && summary.localCount ? ` (≈ ${fx.formatLocal(summary.revenueLocal)})` : ''}`,
+      `Ventas: ${formatNumber(summary.count)} tickets · ticket promedio ${money(summary.avgTicket)}`,
+      summary.count ? `Margen bruto: ${summary.marginPct.toFixed(1)}% · ganancia ${money(summary.profit)}` : null,
+      lossTotal > 0 ? `Mermas y anulaciones: ${money(lossTotal)}` : null,
+      top.length ? `Más vendidos: ${top.map((p, i) => `${i + 1}. ${p.name} (${formatNumber(p.units)})`).join(', ')}` : null
+    ]
+      .filter(Boolean)
+      .join('\n');
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Resumen de ventas · ${business.name}`, text });
+        return;
+      } catch (e) {
+        if ((e as Error)?.name === 'AbortError') return;
+      }
+    }
+    if (await copyText(text)) toast.success('Resumen copiado: pégalo en WhatsApp o donde quieras.');
+    else window.open(whatsappUrl(text), '_blank', 'noopener');
+  };
+
   const rateSection = dual ? (
     <RateEvolution
       points={ratePoints}
@@ -248,6 +281,120 @@ export default function ReportsPage() {
       intraday={singleDay}
     />
   ) : null;
+
+  const closingsSummary = sessionsQ.loading
+    ? 'Cargando cortes…'
+    : !sessionsQ.data.length
+      ? 'Aún no hay cortes cerrados'
+      : (() => {
+          const off = sessionsQ.data.filter((s) => sessionAuditStatus(s) !== 'balanced').length;
+          return `${plural(sessionsQ.data.length, 'corte')} · ${off ? `${off} con diferencia` : 'todos cuadrados'}`;
+        })();
+
+  const cashClosings = (
+    <CashClosings sessions={sessionsQ.data} loading={sessionsQ.loading} money={money} onExport={() => handleExport('cash')} fx={reportFx} />
+  );
+  const inventorySection = <InventoryHealthSection health={health} loading={catalogLoading} salesLoading={loading} money={money} rangeLabel={rangeLabel} />;
+
+  if (!desktop) {
+    return (
+      <ReportsMobile
+        preset={preset}
+        onPreset={setPreset}
+        custom={custom}
+        onCustom={setCustom}
+        maxDate={toInputDate(now)}
+        now={now}
+        rangeLabel={rangeLabel}
+        rate={headerRate}
+        summary={summary}
+        prev={prevSummary}
+        prevLoading={compare && prevQ.loading}
+        compareText={compareLabel(preset)}
+        loading={loading}
+        shrink={shrink}
+        shrinkLoading={shrinkQ.loading || catalogLoading}
+        periodGoal={periodGoal}
+        goal={goal}
+        onGoal={(v) => {
+          setGoal(v);
+          toast.success(v ? 'Meta diaria actualizada' : 'Meta diaria eliminada');
+        }}
+        currencySymbol={currencySymbol}
+        minMarginPct={business.settings?.minMarginPct ?? 0}
+        series={series}
+        granularity={granularity}
+        payments={paymentStats}
+        colorOf={colorOf}
+        products={productStats}
+        money={money}
+        moneyCompact={moneyCompact}
+        fx={reportFx}
+        onExport={handleExport}
+        onShare={shareSummary}
+        salesError={
+          salesQ.error ? (
+            <MCard>
+              <EmptyState
+                icon={TriangleAlert}
+                title="No pudimos cargar las ventas del período"
+                description={errorMessage(salesQ.error)}
+                action={
+                  <Button variant="secondary" onClick={() => setPreset('30d')}>
+                    Probar con los últimos 30 días
+                  </Button>
+                }
+              />
+            </MCard>
+          ) : null
+        }
+        empty={
+          !loading && !hasSales ? (
+            <MCard>
+              <EmptyState
+                icon={ChartColumn}
+                title="Sin ventas en este período"
+                description={
+                  summary.voidedCount
+                    ? `Solo hay ${summary.voidedCount} ${summary.voidedCount === 1 ? 'venta anulada' : 'ventas anuladas'} en ${rangeLabel}.`
+                    : `No se registraron ventas en ${rangeLabel}. Cuando cobres verás aquí tus ventas, métodos de cobro y productos estrella.`
+                }
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {preset !== '30d' && (
+                      <Button variant="secondary" onClick={() => setPreset('30d')}>
+                        Ver últimos 30 días
+                      </Button>
+                    )}
+                    {can('pos') && (
+                      <Button icon={ShoppingCart} onClick={() => navigate('/pos')}>
+                        Ir al punto de venta
+                      </Button>
+                    )}
+                  </div>
+                }
+              />
+            </MCard>
+          ) : null
+        }
+        rateSection={rateSection}
+        cashClosings={cashClosings}
+        closingsSummary={closingsSummary}
+        more={
+          <>
+            {hasSales && (
+              <>
+                <CashierPerformance stats={cashierStats} loading={loading} money={money} />
+                <CategorySales stats={categoryStats} loading={loading} money={money} />
+                <TrafficHeatmap data={heatmap} loading={loading} />
+              </>
+            )}
+            {inventorySection}
+          </>
+        }
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -362,9 +509,9 @@ export default function ReportsPage() {
         </>
       )}
 
-      <CashClosings sessions={sessionsQ.data} loading={sessionsQ.loading} money={money} onExport={() => handleExport('cash')} fx={reportFx} />
+      {cashClosings}
 
-      <InventoryHealthSection health={health} loading={catalogLoading} salesLoading={loading} money={money} rangeLabel={rangeLabel} />
+      {inventorySection}
     </div>
   );
 }

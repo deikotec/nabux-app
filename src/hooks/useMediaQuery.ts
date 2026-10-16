@@ -12,3 +12,11 @@ export function useMediaQuery(mediaQuery: string): boolean {
   }, [mediaQuery]);
   return matches;
 }
+
+/**
+ * Escritorio (barra lateral, tablas) a partir de `lg` (1024 px). Por debajo, la versión móvil:
+ * barra superior e inferior tipo app y pantallas propias (ver ref/movil).
+ */
+export function useIsDesktop(): boolean {
+  return useMediaQuery('(min-width: 1024px)');
+}

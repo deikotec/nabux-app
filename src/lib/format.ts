@@ -125,3 +125,10 @@ export function greeting(date = new Date()): string {
 export function firstName(name?: string | null): string {
   return (name ?? '').trim().split(/\s+/)[0] || '';
 }
+
+/** "María González" → "María G." (nombre y la inicial del apellido). */
+export function shortName(name?: string | null): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] ?? '';
+  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+}
