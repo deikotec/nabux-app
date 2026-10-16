@@ -67,7 +67,7 @@ Nabux se instala como app desde el navegador: en Android/Chrome, menú **⋮ →
 - Firebase JS SDK (Auth, Firestore con caché persistente offline, Storage, AI Logic + App Check cargados bajo demanda)
 - Lector de Excel propio (`src/lib/xlsx.ts`, sin dependencias: ZIP + XML con `DecompressionStream`)
 - React Router 7, íconos lucide-react
-- Diseño basado en `retail_inventory_pos_system/DESIGN.md` y los mockups de cada carpeta de pantallas.
+- Diseño basado en `ref/desktop/retail_inventory_pos_system/DESIGN.md` y las pantallas de referencia de `ref/desktop` (escritorio) y `ref/movil` (celular).
 
 ## Puesta en marcha
 
@@ -194,4 +194,4 @@ Con Java instalado: `firebase emulators:start` y pon `VITE_USE_EMULATORS=true` e
 ## Notas
 
 - Los reportes se calculan en el navegador a partir de las ventas del rango elegido. Para volúmenes muy grandes (decenas de miles de tickets al mes) conviene agregar totales diarios con Cloud Functions.
-- La carpeta raíz conserva los mockups originales (`dashboard_general/`, `terminal_de_ventas_pos/`, etc.) y el borrador `panel_de_inventario_comercial_y_pos.tsx` como referencia; no forman parte del build.
+- `ref/desktop` y `ref/movil` guardan las pantallas de referencia de Stitch (`screen.png` + `code.html` de cada una) y la raíz el borrador `panel_de_inventario_comercial_y_pos.tsx`; no forman parte del build.

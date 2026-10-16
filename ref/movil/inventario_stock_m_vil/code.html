@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-dim": "#d2d9f4", "tertiary-fixed-dim": "#ffb95f", "primary-container": "#00855d", "inverse-on-surface": "#eef0ff", "on-tertiary-fixed": "#2a1700", "surface": "#faf8ff", "on-error-container": "#93000a", "on-surface-variant": "#3d4a42", "surface-bright": "#faf8ff", "secondary": "#0051d5", "tertiary": "#825100", "background": "#faf8ff", "surface-tint": "#006c4a", "on-error": "#ffffff", "on-background": "#131b2e", "surface-container-highest": "#dae2fd", "surface-container-low": "#f2f3ff", "on-primary-fixed-variant": "#005137", "on-primary-container": "#f5fff7", "outline-variant": "#bccac0", "on-tertiary-fixed-variant": "#653e00", "surface-container": "#eaedff", "primary-fixed": "#85f8c4", "error": "#ba1a1a", "on-primary-fixed": "#002114", "on-tertiary-container": "#fffbff", "outline": "#6d7a72", "inverse-surface": "#283044", "on-secondary": "#ffffff", "on-tertiary": "#ffffff", "surface-container-high": "#e2e7ff", "on-secondary-fixed": "#00174b", "secondary-container": "#316bf3", "inverse-primary": "#68dba9", "on-surface": "#131b2e", "secondary-fixed-dim": "#b4c5ff", "surface-container-lowest": "#ffffff", "primary-fixed-dim": "#68dba9", "surface-variant": "#dae2fd", "on-secondary-fixed-variant": "#003ea8", "primary": "#006948", "error-container": "#ffdad6", "secondary-fixed": "#dbe1ff", "on-secondary-container": "#fefcff", "tertiary-container": "#a36700", "tertiary-fixed": "#ffddb8", "on-primary": "#ffffff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "space-xl": "2rem", "margin-desktop": "2rem", "margin": "1rem", "gutter-desktop": "1.5rem", "gutter": "1rem", "space-sm": "0.5rem", "space-lg": "1.25rem", "space-md": "0.75rem" }, fontFamily: { "headline-lg": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "data-mono": ["Plus Jakarta Sans"] }, fontSize: { "headline-lg": ["28px", { lineHeight: "36px", letterSpacing: "-0.015em", fontWeight: "700" }], "display-lg": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700" }], "headline-md": ["20px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "600" }], "body-sm": ["12px", { lineHeight: "16px", fontWeight: "400" }], "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600" }], "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }], "headline-sm": ["16px", { lineHeight: "24px", letterSpacing: "-0.005em", fontWeight: "600" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "700" }], "headline-lg-mobile": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "700" }], "data-mono": ["13px", { lineHeight: "18px", fontWeight: "500" }] } } } };</script><style>body { min-height: max(884px, 100dvh); }</style></head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm"><span class="material-symbols-outlined text-on-primary text-[20px]">storefront</span></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate">MercadoStock</span></div><div class="flex items-center gap-space-xs"><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm truncate">Sucursal Centro</span><div class="flex items-center gap-1 pl-1 border-l border-outline-variant/50" title="Red y lector óptico sincronizados"><span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span><span class="material-symbols-outlined text-primary text-[14px]">barcode_scanner</span></div></div></div></div><div class="flex items-center gap-space-sm shrink-0"><div class="flex flex-col items-end"><span class="font-label-md text-label-md text-on-surface font-semibold">María G.</span><span class="font-label-sm text-label-sm text-outline">Admin</span></div><div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-md font-bold shadow-sm"><span class="text-[12px]">MG</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-screen"><div class="flex flex-col w-full pb-6 px-margin gap-space-md">
+<!-- Sub-header Operativo: Título contextual y botones de acción rápida -->
+<div class="flex items-center justify-between gap-space-sm pt-space-xs">
+<div class="flex flex-col min-w-0">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight truncate">Control de Stock</h1>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary inline-block animate-pulse"></span>
+        Sincronizado hace 2m
+      </span>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<button class="flex items-center gap-1 bg-surface-container-high hover:bg-surface-container-highest text-on-surface px-2.5 py-1.5 rounded-lg shadow-sm transition-all active:scale-95 text-left" id="btn-quick-count" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">fact_check</span>
+<span class="font-label-md text-label-md">Conteo</span>
+</button>
+<button class="flex items-center gap-1 bg-primary hover:bg-primary-container text-on-primary px-3 py-1.5 rounded-lg shadow-sm transition-all active:scale-95" id="btn-new-product" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="font-label-md text-label-md font-bold">Nuevo</span>
+</button>
+</div>
+</div>
+<!-- Buscador Táctil con Botón Lector Óptico / Cámara Integrado -->
+<div class="w-full flex items-center gap-space-xs bg-surface-container-lowest p-1.5 rounded-xl shadow-sm">
+<div class="flex items-center pl-2 text-outline shrink-0">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none px-1 py-1" id="search-input" placeholder="Escanear o buscar SKU, nombre..." type="text"/>
+<button class="flex items-center gap-1.5 bg-primary text-on-primary px-3 py-2 rounded-lg shrink-0 shadow-sm transition-all active:scale-95" title="Activar lector de cámara" type="button">
+<span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+<span class="font-label-sm text-label-sm font-bold uppercase hidden xs:inline">Cámara</span>
+</button>
+</div>
+<!-- Carrusel Deslizable de Filtros Rápidos -->
+<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar -mx-margin px-margin py-0.5">
+<button class="filter-chip active shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-sm transition-all" data-category="all">
+<span>Todos</span>
+<span class="bg-surface-container-lowest/20 px-1.5 py-0.2 rounded-full text-[10px]">2,481</span>
+</button>
+<button class="filter-chip shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-all" data-category="low-stock">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></span>
+<span>Stock Bajo</span>
+<span class="bg-surface-container-lowest px-1.5 py-0.2 rounded-full text-tertiary font-bold text-[10px]">14</span>
+</button>
+<button class="filter-chip shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-all" data-category="perishables">
+<span class="material-symbols-outlined text-[15px] text-error">timer</span>
+<span>Perecederos</span>
+<span class="bg-error-container text-on-error-container px-1.5 py-0.2 rounded-full font-bold text-[10px]">8</span>
+</button>
+<button class="filter-chip shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-all" data-category="abarrotes">
+      Abarrotes
+    </button>
+<button class="filter-chip shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-all" data-category="lacteos">
+      Lácteos
+    </button>
+<button class="filter-chip shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-all" data-category="bebidas">
+      Bebidas
+    </button>
+</div>
+<!-- Resumen Compacto de Inventario (Bento Mini KPI Card) -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Valorización de Almacén</span>
+<span class="font-label-sm text-label-sm text-primary font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +3.4% sem
+      </span>
+</div>
+<div class="flex items-baseline justify-between gap-space-sm">
+<div class="flex items-baseline gap-1">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">$18,450.20</span>
+<span class="font-body-sm text-body-sm text-outline">costo total</span>
+</div>
+<div class="text-right">
+<span class="font-label-md text-label-md text-on-surface font-semibold">2,481 SKUs</span>
+</div>
+</div>
+<!-- Barra de proporción de salud del stock -->
+<div class="w-full flex flex-col gap-1 pt-1">
+<div class="w-full h-2 rounded-full bg-surface-container flex overflow-hidden">
+<div class="h-full bg-primary" style="width: 98.2%" title="98.2% Óptimo"></div>
+<div class="h-full bg-tertiary-fixed-dim" style="width: 1.2%" title="1.2% Bajo Stock"></div>
+<div class="h-full bg-error" style="width: 0.6%" title="0.6% Crítico"></div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label-sm text-outline pt-0.5">
+<span class="flex items-center gap-1 text-primary font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> 98.2% Óptimo
+        </span>
+<span class="flex items-center gap-1 text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim"></span> 14 Alertas
+        </span>
+<span class="flex items-center gap-1 text-error">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> 3 Agotados
+        </span>
+</div>
+</div>
+</div>
+<!-- Lista de Productos Optimizada para Desplazamiento Vertical con Pulgar -->
+<div class="flex flex-col gap-space-sm w-full" id="product-list">
+<!-- Tarjeta 1: Leche Entera 1L (Óptimo) -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm relative transition-all active:bg-surface-container-low" data-sku="0821">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Tetra brik of whole milk on a bright clean grocery shelf, realistic commercial packaging photography, soft supermarket ambient lighting, natural clean styling." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6T5OK6cze1VWKeUklSzQUF3TKUFdFkHXvt6eYNvsevj67YLvqfyYH9K-DTaxRIRWaaDNlzY8mOPKaBnNVExth9YX27tCQQMJ5ZxEunTJpquLs5uM3he5pCZ4t65K2zk2uafcK1sZwSViw7nh9CysgTjzolpGEtTDv0nartiOMyMhtgg0JpvTzb-tH2kUF68LfbvwNjqJ5NKjgOQBhtfVopS2SKbM1fEip-STJRUsdyxFX4dqREnsZCA"/>
+</div>
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Leche Entera 1L</h2>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-outline font-data-mono">SKU #0821</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">shelves</span> Góndola A1
+              </span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-data-mono">$1.35</span>
+<span class="font-body-sm text-body-sm text-outline">PVP</span>
+</div>
+</div>
+<!-- Barra de estado y acciones rápidas táctiles -->
+<div class="flex items-center justify-between gap-space-xs pt-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-fixed-dim/30 text-on-primary-fixed-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>24 disp.</span>
+</span>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="incrementStock('0821')" title="Ajuste rápido de stock" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" title="Imprimir etiqueta góndola" type="button">
+<span class="material-symbols-outlined text-[18px]">print</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="openProductOptions('Leche Entera 1L', '0821')" title="Opciones" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Tarjeta 2: Pan Rústico Diario (Alerta Stock Bajo) -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm relative transition-all active:bg-surface-container-low" data-sku="0314">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Artisanal rustic sourdough loaf on a bakery wooden board with flour dusting, commercial bakery product photography with warm golden tones and depth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAppf62aczT12qfu9XNLRBJLkiHyyzGPG5B5Qrm3EcBS2w2MlNvtjfwbzYpz8oozlFket3LgKqq6_3kj_EWVYJsFHnMvMDZALjdG1yHa75r1oLPw1Ok3xuze5L14P_J9mTruRIu1Ksb8caI28YarTdDW3_Tn8jr-xz1YaQZfJPcMsIabOfyY_ezZAZAi56aWWzehpd0aS617_xEkRcBQ0rtC0daMcR5YWsbzaFodsua_ih_Pyjm-fvrA"/>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Pan Rústico Diario</h2>
+</div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-outline font-data-mono">SKU #0314</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">bakery_dining</span> Pasillo Panadería
+              </span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-data-mono">$1.80</span>
+<span class="font-body-sm text-body-sm text-outline">PVP</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-space-xs pt-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+<span>6 disp. (Mín: 10)</span>
+</span>
+<div class="flex items-center gap-1">
+<button class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-tertiary text-on-tertiary hover:bg-tertiary-container font-label-sm text-label-sm shadow-sm transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">local_shipping</span>
+<span>Reordenar</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="openProductOptions('Pan Rústico Diario', '0314')" title="Opciones" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Tarjeta 3: Aceite Vegetal 900ml (Óptimo) -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm relative transition-all active:bg-surface-container-low" data-sku="1402">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Clear bottle of pure golden cooking vegetable oil 900ml on retail display shelf, soft studio lighting, sharp commercial product photo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcAO60h8PFlv8ECedeSXoi5pIBx13ON_SJ5XSVezMVedgVvUxGtORKgFNrWE4gVogrtvHhR2kFPYVRCvgBFUOwRqVC4caw1PoPlDYtZMDjoxzkg1G-waTD4g9IISu2yw9efCABwz5xrefRUgpLBut3xnXms_9q5fmXPVWbbKCOEjbzV2jNBoCfyZwFKvu_dZCM4HLPT3Cvm3l5c5HiaFwF5TVsuzVitPRjSiAu0KzAqeH3FHyywLegUQ"/>
+</div>
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Aceite Vegetal 900ml</h2>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-outline font-data-mono">SKU #1402</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">shelves</span> Góndola B2
+              </span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-data-mono">$2.50</span>
+<span class="font-body-sm text-body-sm text-outline">PVP</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-space-xs pt-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-fixed-dim/30 text-on-primary-fixed-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>18 disp.</span>
+</span>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="incrementStock('1402')" title="Ajuste rápido" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" title="Imprimir etiqueta" type="button">
+<span class="material-symbols-outlined text-[18px]">print</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="openProductOptions('Aceite Vegetal 900ml', '1402')" title="Opciones" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Tarjeta 4: Refresco Cola 2L (Óptimo) -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm relative transition-all active:bg-surface-container-low" data-sku="9920">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Chilled two liter plastic soda cola bottle with condensation droplets, clean supermarket grocery shelf backdrop, crisp studio product aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEk6iTtt2K6_IPGDq5HdtvPkK7qX6Pwm5kZE_qsYeWELeoe7yO8iCfhFQYBy4OD5maY7aLI4eo18tT75tKIDNIj6y3AgUEPGZe0Coj92wyHZRcoKwYLWMfvpjsqH2iVz2EkvtZemgvPUlrX1MpbaLdd7BgoDmQ2N96_auk4wVmnYsr5eILduYDhYv02cjVjm3KeR7AXsK03AUwCkxyKXqcm5w10WX1AijzplBB6mwwbbLsSOY_xMdZbg"/>
+</div>
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Refresco Cola 2L</h2>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-outline font-data-mono">SKU #9920</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">shelves</span> Góndola C1
+              </span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-data-mono">$2.40</span>
+<span class="font-body-sm text-body-sm text-outline">PVP</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-space-xs pt-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-fixed-dim/30 text-on-primary-fixed-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>32 disp.</span>
+</span>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="incrementStock('9920')" title="Ajuste rápido" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" title="Imprimir etiqueta" type="button">
+<span class="material-symbols-outlined text-[18px]">print</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="openProductOptions('Refresco Cola 2L', '9920')" title="Opciones" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Tarjeta 5: Huevos Granja Docena (Óptimo) -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm relative transition-all active:bg-surface-container-low" data-sku="4412">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Carton box of one dozen farm fresh brown eggs, opened displaying organic smooth eggs, commercial food presentation on market shelf." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdtnaKW2gr1jZV2p4tHN9feAFcIz0vEPOUShtcVBTa2Ef0PBQ-4C4tyIQ6S13dnYE8DlugOVt-zGZVfxgUCq-9pI9o5PmRWXRHFvZOQcw8_b7Xs9Di7mD8UykjzIrXeE-s4ncn_XG0PvEmu9_ktEYu_MxB4ufvAXJHhferBSDKfyr7NKac_emWxhZvL_iowCs4Ng6bLZXDLPERcZYoxLgNs9Waor_27HMMj9ltooZm5UJHQHxUKrsaIQ"/>
+</div>
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Huevos Granja Docena</h2>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-outline font-data-mono">SKU #4412</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">kitchen</span> Nevera 2
+              </span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-data-mono">$3.20</span>
+<span class="font-body-sm text-body-sm text-outline">PVP</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-space-xs pt-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-fixed-dim/30 text-on-primary-fixed-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>40 doc.</span>
+</span>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="incrementStock('4412')" title="Ajuste rápido" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" title="Imprimir etiqueta" type="button">
+<span class="material-symbols-outlined text-[18px]">print</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="openProductOptions('Huevos Granja Docena', '4412')" title="Opciones" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Tarjeta 6: Arroz Superior 1kg (Stock Crítico) -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm relative transition-all active:bg-surface-container-low" data-sku="5512">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="One kilogram sealed transparent bag of long grain superior white rice on grocery shelf, professional retail item photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5fGX5ABf6gxZj7NasWVs2-Vt9nXLzMahC9wrKxG48mtaWtP9D-F0VEDNZTlWIHZiiM5jE99NhMDkebeDICHEPGTSL3mfSYJ-o1G4eNLpPMnxXIrEvQwgCRaiQqzw11JWqiOZi-ID-bhHIP-BSlKWS-sfWI0jTXpUoIOB_TYTsX09MB_15Qh-FtkNOSzqANSY6M8GMyJ0CE9H9wVTQCMYxBHqqq-xYtB23mDdlHkkiFBL8Q6HyYq1EgA"/>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Arroz Superior 1kg</h2>
+</div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-outline font-data-mono">SKU #5512</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">shelves</span> Pasillo 3
+              </span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-data-mono">$1.95</span>
+<span class="font-body-sm text-body-sm text-outline">PVP</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-space-xs pt-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span>3 disp. (Crítico)</span>
+</span>
+<div class="flex items-center gap-1">
+<button class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-error text-on-error hover:bg-error-container hover:text-on-error-container font-label-sm text-label-sm shadow-sm transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">priority_high</span>
+<span>Urgente</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors active:scale-95" onclick="openProductOptions('Arroz Superior 1kg', '5512')" title="Opciones" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Sheet / Modal Táctil de Acciones Rápidas (Oculto por defecto) -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/40 backdrop-blur-sm hidden items-end justify-center transition-opacity" id="quick-action-modal">
+<div class="w-full max-w-md bg-surface-container-lowest rounded-t-2xl p-space-lg shadow-xl flex flex-col gap-space-md animate-in slide-in-from-bottom duration-200">
+<div class="w-10 h-1 bg-surface-container-highest rounded-full self-center"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline" id="modal-sku-label">SKU #0000</span>
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold" id="modal-product-title">Producto</h3>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-outline hover:text-on-surface" onclick="closeProductOptions()" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="grid grid-cols-3 gap-space-xs pt-1">
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface gap-1.5 transition-all active:scale-95" onclick="triggerStockUpdate()" type="button">
+<span class="material-symbols-outlined text-primary text-[24px]">edit_note</span>
+<span class="font-label-sm text-label-sm font-semibold text-center">Actualizar Stock</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface gap-1.5 transition-all active:scale-95" onclick="triggerPriceChange()" type="button">
+<span class="material-symbols-outlined text-secondary text-[24px]">price_change</span>
+<span class="font-label-sm text-label-sm font-semibold text-center">Cambiar PVP</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface gap-1.5 transition-all active:scale-95" onclick="triggerPrintLabel()" type="button">
+<span class="material-symbols-outlined text-on-surface-variant text-[24px]">print</span>
+<span class="font-label-sm text-label-sm font-semibold text-center">Etiqueta</span>
+</button>
+</div>
+<div class="pt-2">
+<button class="w-full py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold text-center hover:bg-surface-container-high transition-colors" onclick="closeProductOptions()" type="button">
+          Cerrar
+        </button>
+</div>
+</div>
+</div>
+<!-- Toast de Notificación Táctil Feedback -->
+<div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-inverse-surface text-inverse-on-surface px-4 py-2 rounded-full font-label-md text-label-md shadow-lg flex items-center gap-2 opacity-0 pointer-events-none transition-opacity duration-200" id="toast-feedback">
+<span class="material-symbols-outlined text-inverse-primary text-[18px]">check_circle</span>
+<span id="toast-text">Inventario actualizado con éxito</span>
+</div>
+</div>
+<script>
+  // Manejo de Filtros Rápidos
+  const filterChips = document.querySelectorAll('.filter-chip');
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach(c => {
+        c.classList.remove('bg-primary', 'text-on-primary', 'active');
+        c.classList.add('bg-surface-container-high', 'text-on-surface');
+      });
+      chip.classList.remove('bg-surface-container-high', 'text-on-surface');
+      chip.classList.add('bg-primary', 'text-on-primary', 'active');
+      showToast('Filtro aplicado: ' + chip.textContent.trim().split(/\s+/)[0]);
+    });
+  });
+
+  // Modal de opciones rápidas de producto
+  const modal = document.getElementById('quick-action-modal');
+  const modalTitle = document.getElementById('modal-product-title');
+  const modalSku = document.getElementById('modal-sku-label');
+
+  function openProductOptions(name, sku) {
+    modalTitle.textContent = name;
+    modalSku.textContent = 'SKU #' + sku;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeProductOptions() {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  // Incremento rápido táctil de stock con feedback
+  function incrementStock(sku) {
+    showToast('+1 Unidad sumada a SKU #' + sku);
+  }
+
+  function triggerStockUpdate() {
+    closeProductOptions();
+    showToast('Ajuste de inventario iniciado');
+  }
+
+  function triggerPriceChange() {
+    closeProductOptions();
+    showToast('Modo cambio de precio activo');
+  }
+
+  function triggerPrintLabel() {
+    closeProductOptions();
+    showToast('Enviado a impresora Bluetooth');
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('toast-feedback');
+    const toastText = document.getElementById('toast-text');
+    toastText.textContent = message;
+    toast.classList.remove('opacity-0', 'pointer-events-none');
+    toast.classList.add('opacity-100');
+    setTimeout(() => {
+      toast.classList.remove('opacity-100');
+      toast.classList.add('opacity-0', 'pointer-events-none');
+    }, 2200);
+  }
+
+  // Búsqueda en tiempo real
+  const searchInput = document.getElementById('search-input');
+  searchInput.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const cards = document.querySelectorAll('#product-list > div');
+    cards.forEach(card => {
+      const text = card.textContent.toLowerCase();
+      if (text.includes(term)) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  });
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-bold"><div class="grid grid-cols-5 items-center h-16 px-space-xs"><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-label-sm text-label-sm truncate w-full text-center">Inicio</span></a><a aria-current="page" class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 transition-colors text-primary font-bold" data-path="inventario" href="#"><span class="material-symbols-outlined text-[22px]">inventory_2</span><span class="font-label-sm text-label-sm truncate w-full text-center">Inventario</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="pos-terminal" href="#"><span class="material-symbols-outlined text-[22px]">point_of_sale</span><span class="font-label-sm text-label-sm truncate w-full text-center">POS</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="reportes" href="#"><span class="material-symbols-outlined text-[22px]">insights</span><span class="font-label-sm text-label-sm truncate w-full text-center">Reportes</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="personal" href="#"><span class="material-symbols-outlined text-[22px]">group</span><span class="font-label-sm text-label-sm truncate w-full text-center">Personal</span></a></div></nav></body></html>

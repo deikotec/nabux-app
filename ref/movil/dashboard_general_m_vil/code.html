@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-dim": "#d2d9f4", "tertiary-fixed-dim": "#ffb95f", "primary-container": "#00855d", "inverse-on-surface": "#eef0ff", "on-tertiary-fixed": "#2a1700", "surface": "#faf8ff", "on-error-container": "#93000a", "on-surface-variant": "#3d4a42", "surface-bright": "#faf8ff", "secondary": "#0051d5", "tertiary": "#825100", "background": "#faf8ff", "surface-tint": "#006c4a", "on-error": "#ffffff", "on-background": "#131b2e", "surface-container-highest": "#dae2fd", "surface-container-low": "#f2f3ff", "on-primary-fixed-variant": "#005137", "on-primary-container": "#f5fff7", "outline-variant": "#bccac0", "on-tertiary-fixed-variant": "#653e00", "surface-container": "#eaedff", "primary-fixed": "#85f8c4", "error": "#ba1a1a", "on-primary-fixed": "#002114", "on-tertiary-container": "#fffbff", "outline": "#6d7a72", "inverse-surface": "#283044", "on-secondary": "#ffffff", "on-tertiary": "#ffffff", "surface-container-high": "#e2e7ff", "on-secondary-fixed": "#00174b", "secondary-container": "#316bf3", "inverse-primary": "#68dba9", "on-surface": "#131b2e", "secondary-fixed-dim": "#b4c5ff", "surface-container-lowest": "#ffffff", "primary-fixed-dim": "#68dba9", "surface-variant": "#dae2fd", "on-secondary-fixed-variant": "#003ea8", "primary": "#006948", "error-container": "#ffdad6", "secondary-fixed": "#dbe1ff", "on-secondary-container": "#fefcff", "tertiary-container": "#a36700", "tertiary-fixed": "#ffddb8", "on-primary": "#ffffff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "space-xl": "2rem", "margin-desktop": "2rem", "margin": "1rem", "gutter-desktop": "1.5rem", "gutter": "1rem", "space-sm": "0.5rem", "space-lg": "1.25rem", "space-md": "0.75rem" }, fontFamily: { "headline-lg": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "data-mono": ["Plus Jakarta Sans"] }, fontSize: { "headline-lg": ["28px", { lineHeight: "36px", letterSpacing: "-0.015em", fontWeight: "700" }], "display-lg": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700" }], "headline-md": ["20px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "600" }], "body-sm": ["12px", { lineHeight: "16px", fontWeight: "400" }], "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600" }], "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }], "headline-sm": ["16px", { lineHeight: "24px", letterSpacing: "-0.005em", fontWeight: "600" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "700" }], "headline-lg-mobile": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "700" }], "data-mono": ["13px", { lineHeight: "18px", fontWeight: "500" }] } } } };</script><style>body { min-height: max(884px, 100dvh); }</style></head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm"><span class="material-symbols-outlined text-on-primary text-[20px]">storefront</span></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate">MercadoStock</span></div><div class="flex items-center gap-space-xs"><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm truncate">Sucursal Centro</span><div class="flex items-center gap-1 pl-1 border-l border-outline-variant/50" title="Red y lector óptico sincronizados"><span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span><span class="material-symbols-outlined text-primary text-[14px]">barcode_scanner</span></div></div></div></div><div class="flex items-center gap-space-sm shrink-0"><div class="flex flex-col items-end"><span class="font-label-md text-label-md text-on-surface font-semibold">María G.</span><span class="font-label-sm text-label-sm text-outline">Admin</span></div><div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-md font-bold shadow-sm"><span class="text-[12px]">MG</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-screen"><div class="flex flex-col w-full pb-6 px-margin gap-space-lg">
+<section class="flex flex-col gap-space-xs mt-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold tracking-tight">
+          ¡Buen día, María!
+        </span>
+<div class="flex items-center gap-2 mt-0.5">
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span>Turno Mañana</span>
+</div>
+<span class="text-on-surface-variant font-body-sm text-body-sm">Caja #1 Abierta</span>
+</div>
+</div>
+<button aria-label="Sincronizar datos" class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high active:scale-95 transition-all shadow-sm" id="btn-sync-refresh">
+<span class="material-symbols-outlined text-[20px] transition-transform duration-500" id="sync-icon">sync</span>
+</button>
+</div>
+</section>
+<section class="grid grid-cols-2 gap-space-sm">
+<div class="flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Ventas Hoy</span>
+<span class="material-symbols-outlined text-primary text-[18px]">payments</span>
+</div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold tracking-tight data-mono">$1,428.50</span>
+<div class="flex items-center gap-1 mt-2">
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[13px] leading-none">arrow_upward</span>
+          14.2%
+        </span>
+<span class="font-label-sm text-label-sm text-outline">vs ayer</span>
+</div>
+</div>
+<div class="flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Tickets</span>
+<span class="material-symbols-outlined text-secondary text-[18px]">receipt_long</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold tracking-tight">68</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">tickets</span>
+</div>
+<div class="flex items-center gap-1 mt-2">
+<span class="px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold">
+          Prom. $21.00
+        </span>
+</div>
+</div>
+<div class="flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Stock Crítico</span>
+<span class="material-symbols-outlined text-error text-[18px]">emergency_home</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-error font-bold tracking-tight">4</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">artículos</span>
+</div>
+<div class="flex items-center gap-1 mt-2">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+          Por reponer
+        </span>
+</div>
+</div>
+<div class="flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Margen Bruto</span>
+<span class="material-symbols-outlined text-tertiary text-[18px]">query_stats</span>
+</div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold tracking-tight">36.4%</span>
+<div class="flex items-center gap-1 mt-2">
+<span class="px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-medium">
+          +$520.00 neto
+        </span>
+</div>
+</div>
+</section>
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Accesos Rápidos</h2>
+<span class="font-label-sm text-label-sm text-outline">Operaciones de turno</span>
+</div>
+<div class="grid grid-cols-4 gap-space-xs">
+<a class="flex flex-col items-center justify-center p-space-sm rounded-xl bg-primary text-on-primary shadow-sm hover:bg-primary-container active:scale-95 transition-all text-center" href="#">
+<div class="w-10 h-10 rounded-lg bg-surface/20 flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">point_of_sale</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold leading-tight line-clamp-2">Nueva Venta</span>
+</a>
+<a class="flex flex-col items-center justify-center p-space-sm rounded-xl bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container-low active:scale-95 transition-all text-center" href="#">
+<div class="w-10 h-10 rounded-lg bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[22px]">barcode_scanner</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold leading-tight line-clamp-2">Consultar SKU</span>
+</a>
+<a class="flex flex-col items-center justify-center p-space-sm rounded-xl bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container-low active:scale-95 transition-all text-center" href="#">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[22px]">move_to_inbox</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold leading-tight line-clamp-2">Ingreso Stock</span>
+</a>
+<a class="flex flex-col items-center justify-center p-space-sm rounded-xl bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container-low active:scale-95 transition-all text-center" href="#">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest text-on-surface-variant flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[22px]">receipt</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold leading-tight line-clamp-2">Cierre Caja Z</span>
+</a>
+</div>
+</section>
+<section class="flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">trending_up</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Ritmo de Ventas</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">08:00 a 20:00 • Pico 13:00 ($310/h)</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold">En vivo</span>
+</div>
+<div class="relative w-full h-36 flex flex-col justify-end pt-4">
+<svg class="w-full h-24 overflow-visible" preserveaspectratio="none" viewbox="0 0 320 80">
+<defs>
+<lineargradient id="salesGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#006948" stop-opacity="0.35"></stop>
+<stop offset="100%" stop-color="#006948" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<path d="M 0,72 L 28,68 L 60,60 L 92,54 L 124,35 L 156,12 L 188,24 L 220,40 L 252,38 L 284,52 L 320,60 L 320,80 L 0,80 Z" fill="url(#salesGrad)"></path>
+<path d="M 0,72 L 28,68 L 60,60 L 92,54 L 124,35 L 156,12 L 188,24 L 220,40 L 252,38 L 284,52 L 320,60" fill="none" stroke="#006948" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+<circle cx="156" cy="12" fill="#006948" r="4.5" stroke="#ffffff" stroke-width="2"></circle>
+<circle cx="28" cy="68" fill="#006948" r="2.5"></circle>
+<circle cx="92" cy="54" fill="#006948" r="2.5"></circle>
+<circle cx="252" cy="38" fill="#006948" r="2.5"></circle>
+</svg>
+<div class="flex justify-between items-center text-outline font-label-sm text-label-sm pt-2">
+<span>08h</span>
+<span>10h</span>
+<span class="text-primary font-bold">13h (Max)</span>
+<span>16h</span>
+<span>18h</span>
+<span>20h</span>
+</div>
+</div>
+</section>
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-error text-[20px]">notification_important</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Alertas de Stock Bajo</h2>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold">
+        Acción Inmediata
+      </span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high overflow-hidden shrink-0 flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Fotografía de producto editorial de primer plano mostrando hogazas de pan rústico artesanal recién horneado con corteza dorada y harinada sobre madera suave, fondo blanco de estudio de supermercado moderno con luz cálida natural" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7LUvYfHoJwph7QhcQM57Kalirowb6oP2NqVNWs1t90QOH5t3DBLGc7io3P9RaLGKk1WLIft0OYmtXDSsW4ukHNfnnyvgXBM4aAB5rUR7nTm8Qa_x9W-F7QggJJFooKJQVOhifMLjZiXq6FIsB9rBkIdiMTXvLS1Dia74hja1-bfMPr16Dk-uXA5rTA5d3lTZJSI3NlV_R_y7RhQxhEsa_xaSOVK-PuDf6IoyRVYbmkkUgQ7N7dyo9MQ"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Pan Rústico Artesanal</span>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                6 disp. (Crítico)
+              </span>
+<span class="font-label-sm text-label-sm text-outline">SKU #84102</span>
+</div>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold shadow-sm hover:bg-primary-container active:scale-95 transition-all flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">add_shopping_cart</span>
+          Pedir
+        </button>
+</div>
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high overflow-hidden shrink-0 flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Fotografía de producto de supermercado de botella transparente de aceite vegetal de 900 mililitros con etiqueta verde limpia y líquido ámbar brillante, sobre estantería blanca minimalista con iluminación suave de retail contemporáneo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEr85NnCNjZB9pGbtXE_vQZ5zcXqK9ZgW0qyRxwyFtmwwpnsoEgZ1sNgo7AE6eemlFWWdj6CAoOlfOAF-NcOP1awCyPu8KnRzho5OucjSGyJQZnoTDP-QBu6W56_YwfmRDQyKdAPKXEBrEt5D9Sruv4CuI-THiV9TMeUNu4BT5HIWLR40ao9YT1A_NLGgPsg71gR2Z1Yj4Cb7e3jH2IuJyD-0_7fcjyznJZLjWKveMccniya7xOpmrxA"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Aceite Vegetal 900ml</span>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                18 disp.
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Góndola 2</span>
+</div>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-container-highest active:scale-95 transition-all flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">forklift</span>
+          Mover
+        </button>
+</div>
+</div>
+</section>
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[20px]">history</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Bitácora en Vivo</h2>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Actividad del Turno</span>
+</div>
+<div class="flex flex-col p-space-sm rounded-xl bg-surface-container-lowest shadow-sm gap-space-sm">
+<div class="flex items-start justify-between p-space-sm rounded-lg hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-space-sm min-w-0">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-label-lg text-label-lg text-on-surface font-bold truncate">Ticket #T-00482</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Caja #1</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline">Hace 4 min • 3 artículos procesados</span>
+</div>
+</div>
+<span class="font-label-lg text-label-lg text-primary font-bold tabular-nums">+$16.90</span>
+</div>
+<div class="flex items-start justify-between p-space-sm rounded-lg hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-space-sm min-w-0">
+<div class="w-8 h-8 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">replay</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-label-lg text-label-lg text-on-surface font-bold truncate">Devolución #T-00478</span>
+<span class="px-1.5 py-0.2 rounded bg-error-container text-on-error-container font-label-sm text-label-sm">Autorizada</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline">Hace 28 min • Producto en mal estado</span>
+</div>
+</div>
+<span class="font-label-lg text-label-lg text-error font-bold tabular-nums">-$4.50</span>
+</div>
+<div class="flex items-start justify-between p-space-sm rounded-lg hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-space-sm min-w-0">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">local_shipping</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-label-lg text-label-lg text-on-surface font-bold truncate">Recepción Mercadería</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline">Hace 1 hora • Albarán #AL-9921</span>
+</div>
+</div>
+<span class="font-label-lg text-label-lg text-tertiary font-bold tabular-nums">+48 un. Lácteos</span>
+</div>
+</div>
+</section>
+</div>
+<script>
+  const syncBtn = document.getElementById('btn-sync-refresh');
+  const syncIcon = document.getElementById('sync-icon');
+  if (syncBtn && syncIcon) {
+    syncBtn.addEventListener('click', () => {
+      syncIcon.classList.add('rotate-180');
+      setTimeout(() => {
+        syncIcon.classList.remove('rotate-180');
+      }, 500);
+    });
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-bold"><div class="grid grid-cols-5 items-center h-16 px-space-xs"><a aria-current="page" class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 transition-colors text-primary font-bold" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-label-sm text-label-sm truncate w-full text-center">Inicio</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="inventario" href="#"><span class="material-symbols-outlined text-[22px]">inventory_2</span><span class="font-label-sm text-label-sm truncate w-full text-center">Inventario</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="pos-terminal" href="#"><span class="material-symbols-outlined text-[22px]">point_of_sale</span><span class="font-label-sm text-label-sm truncate w-full text-center">POS</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="reportes" href="#"><span class="material-symbols-outlined text-[22px]">insights</span><span class="font-label-sm text-label-sm truncate w-full text-center">Reportes</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="personal" href="#"><span class="material-symbols-outlined text-[22px]">group</span><span class="font-label-sm text-label-sm truncate w-full text-center">Personal</span></a></div></nav></body></html>
