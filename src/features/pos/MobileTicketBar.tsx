@@ -36,7 +36,8 @@ export function MobileTicketBar({ itemCount, total, money, moneyLocal, blocked, 
   return (
     <div
       ref={ref}
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 pt-3 pr-[max(1rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] shadow-overlay backdrop-blur lg:hidden"
+      // Va justo encima de la navegación inferior (--bottom-nav), que ya respeta la barra de inicio del iPhone.
+      className="fixed inset-x-0 bottom-[var(--bottom-nav,0px)] z-30 border-t border-slate-200 bg-white/95 pt-3 pr-[max(1rem,env(safe-area-inset-right))] pb-[max(0.75rem,calc(env(safe-area-inset-bottom)-var(--bottom-nav,0px)))] pl-[max(1rem,env(safe-area-inset-left))] shadow-[0_-8px_16px_-12px_rgba(15,23,42,0.18)] backdrop-blur lg:hidden"
     >
       <div className="mx-auto flex max-w-3xl items-center gap-3">
         <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col text-left" aria-label="Ver ticket actual">

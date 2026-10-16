@@ -1,11 +1,12 @@
 import { createPortal } from 'react-dom';
-import { Printer, ReceiptText } from 'lucide-react';
+import { Printer, ReceiptText, Share2 } from 'lucide-react';
 import { RATE_SOURCE_LABELS } from '@/config/app';
 import { formatDate, formatMoney, formatTime } from '@/lib/format';
 import { formatRate } from '@/lib/fx';
 import { fxSettingsOf, paymentMethodsOf, salePayments } from '@/lib/payments';
+import { cn } from '@/lib/utils';
 import type { Business, Sale } from '@/types';
-import { Badge, Button, Modal } from '@/components/ui';
+import { Badge, Button, Modal, useToast } from '@/components/ui';
 
 type ReceiptBusiness = Pick<
   Business,
@@ -126,6 +127,37 @@ function labelFromId(id: string) {
   return id.replace(/_/g, ' ');
 }
 
+/** El ticket como texto, para compartirlo por WhatsApp, correo, etc. (*negritas* al estilo WhatsApp). */
+export function receiptText(sale: Sale, business: ReceiptBusiness): string {
+  const fx = fxSettingsOf(business);
+  const baseCurrency = sale.currency || business.currency;
+  const localCurrency = sale.localCurrency ?? null;
+  const rate = sale.rate ?? null;
+  const m = (n: number | null | undefined) => formatMoney(n, baseCurrency, business.locale);
+  const inCurrency = (n: number | null | undefined, currency: string) =>
+    formatMoney(n, currency || baseCurrency, currency === localCurrency ? fx.localLocale : business.locale);
+  const payments = salePayments(sale);
+  const igtf = sale.igtf ?? 0;
+  const lines: string[] = [`*${business.name}*`];
+  if (business.taxId) lines.push(`${fx.enabled || business.country === 'VE' ? 'RIF' : 'RFC/NIT'}: ${business.taxId}`);
+  lines.push(`Ticket ${sale.folio} · ${formatDate(sale.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric' })} ${formatTime(sale.createdAt)}`);
+  if (sale.status === 'voided') lines.push('*VENTA ANULADA*');
+  lines.push('');
+  for (const it of sale.items) lines.push(`${it.qty} x ${it.name}${it.taxExempt ? ' (E)' : ''} — ${m(it.total)}`);
+  lines.push('');
+  if (sale.discount > 0) lines.push(`Descuento: -${m(sale.discount)}`);
+  lines.push(`Subtotal: ${m(sale.subtotal)}`);
+  lines.push(`${business.taxName || 'IVA'} (${business.taxRate}%): ${m(sale.tax)}`);
+  const totalLocal = rate && localCurrency ? inCurrency(sale.totalLocal ?? sale.total * rate, localCurrency) : null;
+  lines.push(`*Total: ${m(sale.total)}*${totalLocal ? ` (${totalLocal})` : ''}`);
+  if (igtf > 0) lines.push(`IGTF (${sale.igtfRate ?? fx.igtfRate}%): ${m(igtf)} · Total pagado: ${m(sale.amountDue ?? sale.total + igtf)}`);
+  for (const p of payments) lines.push(`Pago: ${p.label} ${inCurrency(p.amount, p.currency)}${p.reference ? ` · Ref. ${p.reference}` : ''}`);
+  if ((sale.changeAmount ?? 0) > 0) lines.push(`Vuelto: ${inCurrency(sale.changeAmount, sale.changeCurrency || baseCurrency)}`);
+  if (rate) lines.push(`Tasa${sale.rateSource ? ` ${RATE_SOURCE_LABELS[sale.rateSource]}` : ''}: ${formatRate(rate)}`);
+  if (business.receiptFooter) lines.push('', business.receiptFooter);
+  return lines.join('\n');
+}
+
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className={`flex justify-between gap-2${bold ? ' font-bold' : ''}`}>
@@ -157,6 +189,22 @@ export function ReceiptModal({
   /** Botones extra en el pie (ej. "Nueva venta", "Anular"). */
   actions?: React.ReactNode;
 }) {
+  const toast = useToast();
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const share = async () => {
+    if (!sale) return;
+    try {
+      await navigator.share({ title: `Ticket ${sale.folio} · ${business.name}`, text: receiptText(sale, business) });
+    } catch (e) {
+      if ((e as DOMException)?.name === 'AbortError') return; // la persona cerró el menú de compartir
+      try {
+        await navigator.clipboard.writeText(receiptText(sale, business));
+        toast.success('No se pudo abrir el menú de compartir: el ticket se copió al portapapeles.');
+      } catch {
+        toast.error('No se pudo compartir el ticket.');
+      }
+    }
+  };
   const subtitle = sale
     ? `${sale.folio} · ${formatMoney(sale.total, sale.currency || business.currency, business.locale)}${
         sale.rate && sale.localCurrency
@@ -177,9 +225,17 @@ export function ReceiptModal({
       footer={
         <>
           {actions}
-          <Button variant="secondary" icon={Printer} onClick={() => window.print()}>
-            Imprimir
-          </Button>
+          {/* En el celular lo habitual es compartir el ticket (no hay impresora): ambos en una fila. */}
+          <div className={cn('grid gap-2 sm:flex', canShare && 'grid-cols-2')}>
+            {canShare && (
+              <Button variant="secondary" icon={Share2} onClick={share}>
+                Compartir
+              </Button>
+            )}
+            <Button variant="secondary" icon={Printer} onClick={() => window.print()}>
+              Imprimir
+            </Button>
+          </div>
         </>
       }
     >

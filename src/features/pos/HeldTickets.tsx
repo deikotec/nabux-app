@@ -41,7 +41,7 @@ export function HeldTicketsModal({ open, onClose, held, money, moneyLocal, hasCu
         <EmptyState
           icon={CirclePause}
           title="No hay tickets en espera"
-          description="Cuando un cliente necesite un momento, presiona F8 para pausar su ticket y atender al siguiente."
+          description="Cuando un cliente necesite un momento, pausa su ticket con «En espera» y atiende al siguiente."
         />
       ) : (
         <ul className="flex flex-col gap-2">

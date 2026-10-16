@@ -70,7 +70,7 @@ export function PosKpis({
         tone="bg-tertiary-fixed text-tertiary"
         label="Tickets en pausa"
         value={`${heldCount} ${heldCount === 1 ? 'cliente' : 'clientes'}`}
-        sub={heldCount ? 'Toca para recuperar' : 'F8 pone un ticket en espera'}
+        sub={heldCount ? 'Toca para recuperar' : 'Pausa un ticket con «En espera»'}
         onClick={heldCount ? onHeldClick : undefined}
         actionLabel="Ver tickets en espera"
       />

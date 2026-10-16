@@ -256,7 +256,7 @@ export default function PosPage() {
     if (processingRef.current) return;
     if (!ticket.lines.length) {
       if (held.length) setHeldOpen(true);
-      else toast.info('No hay tickets en espera. Agrega productos y presiona F8 para pausar uno.');
+      else toast.info('No hay tickets en espera. Agrega productos y usa «En espera» para pausar uno.');
       return;
     }
     holdCurrent();

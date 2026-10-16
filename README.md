@@ -57,7 +57,8 @@ Nabux se instala como app desde el navegador: en Android/Chrome, menú **⋮ →
 
 - **Abre sin internet.** El service worker (`vite-plugin-pwa` + Workbox, configurado en `vite.config.ts`) guarda toda la app en el dispositivo la primera vez que se visita; los datos los guarda la caché persistente de Firestore. Sin red se puede abrir, recargar y navegar a cualquier sección, y las ventas se sincronizan al volver la conexión. También se guardan las fotos de productos y la tipografía.
 - **Actualizaciones.** Tras un `deploy`, la app avisa *"Hay una versión nueva"* y se actualiza cuando la persona toca **Actualizar** (nunca a mitad de una venta). Busca versiones nuevas al abrir y cada hora.
-- **Móvil.** Respeta la muesca y la barra de inicio del iPhone (`viewport-fit=cover` + `env(safe-area-inset-*)`), oculta los atajos de teclado en pantallas táctiles y muestra el estado *Sin conexión* en la barra superior.
+- **Móvil.** Barra de navegación inferior tipo app (Inicio, Vender, Inventario, Ventas y *Más* para el resto, según los permisos). Respeta la muesca y la barra de inicio del iPhone (`viewport-fit=cover` + `env(safe-area-inset-*)`), oculta los atajos de teclado en pantallas táctiles y muestra el estado *Sin conexión* en la barra superior.
+- **Tickets en el celular.** La impresión automática al cobrar viene activada solo en computadoras; en celulares y tabletas queda apagada (se puede activar en el POS si hay una impresora Bluetooth). El ticket se puede **compartir** como texto (WhatsApp, correo…) con el menú nativo del teléfono.
 - **Probarlo en local:** `npm run build && npm run preview`, abre la app, y en DevTools → *Application → Service workers* marca *Offline* y recarga. En `npm run dev` el service worker está desactivado.
 
 ## Stack

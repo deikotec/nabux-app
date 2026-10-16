@@ -8,7 +8,6 @@ import {
   ChevronDown,
   CloudOff,
   LogOut,
-  Menu,
   Plus,
   Search,
   UserCircle,
@@ -27,6 +26,7 @@ import { cn, productMatches } from '@/lib/utils';
 import { Avatar, Button, Kbd, MenuItem, Popover, ProductThumb, StatusDot, StockBadge, useClickOutside } from '@/components/ui';
 import { LogoMark } from './Logo';
 import { NAV_ITEMS } from './nav';
+import { BottomNav } from './BottomNav';
 
 export function AppLayout() {
   const [drawer, setDrawer] = useState(false);
@@ -70,11 +70,15 @@ export function AppLayout() {
       )}
 
       <div className="lg:pl-64">
-        <Topbar onMenu={() => setDrawer(true)} />
-        <main className="mx-auto w-full max-w-[1600px] px-4 pb-10 sm:px-6">
+        <Topbar />
+        {/* --bottom-nav: alto de la barra inferior del móvil (0 en escritorio). */}
+        <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(2.5rem+var(--bottom-nav,0px))] sm:px-6">
           <Outlet />
         </main>
       </div>
+
+      {/* Navegación inferior (móvil/tablet); "Más" abre el menú lateral */}
+      <BottomNav onMore={() => setDrawer(true)} moreOpen={drawer} />
     </div>
   );
 }
@@ -206,7 +210,7 @@ function SidebarContent() {
 
 /* ------------------------------------------------------------------ */
 
-function Topbar({ onMenu }: { onMenu: () => void }) {
+function Topbar() {
   const { member, business, can } = useBusiness();
   const { user, signOut } = useAuth();
   const { session, requestOpen, requestClose } = useCash();
@@ -216,9 +220,14 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200/60 bg-surface/85 px-4 backdrop-blur-xl sm:px-6">
-      <button className="-ml-1 rounded-lg p-2 text-on-surface-variant hover:bg-surface-container lg:hidden" onClick={onMenu} aria-label="Abrir menú">
-        <Menu className="size-5" />
-      </button>
+      {/* En móvil el menú está en la barra inferior ("Más"): aquí va el logo, que lleva al inicio. */}
+      <NavLink to="/" className="shrink-0 lg:hidden" aria-label="Ir al panel principal">
+        {business?.logoUrl ? (
+          <img src={business.logoUrl} alt="" className="size-9 rounded-xl bg-white object-contain" />
+        ) : (
+          <LogoMark className="size-9 rounded-xl" />
+        )}
+      </NavLink>
 
       <GlobalSearch />
 

@@ -38,13 +38,22 @@ export { useMediaQuery } from '@/hooks/useMediaQuery';
 
 const AUTO_PRINT_KEY = 'nabux:pos:autoprint';
 
+/**
+ * Por defecto la impresión automática solo se activa en computadoras: en celulares y tabletas (pantalla táctil) lo normal
+ * es no tener una impresora de tickets conectada. Si la tienen (ej. Bluetooth), la activan a mano.
+ */
+function defaultAutoPrint() {
+  return typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
+}
+
 /** Preferencia del equipo: imprimir el ticket automáticamente al cobrar. */
 export function useAutoPrint(): [boolean, (v: boolean) => void] {
   const [value, setValue] = useState(() => {
     try {
-      return localStorage.getItem(AUTO_PRINT_KEY) !== '0';
+      const saved = localStorage.getItem(AUTO_PRINT_KEY);
+      return saved === null ? defaultAutoPrint() : saved !== '0';
     } catch {
-      return true;
+      return defaultAutoPrint();
     }
   });
   const update = useCallback((v: boolean) => {
