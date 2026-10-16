@@ -66,7 +66,7 @@ export function QuickActionsCard() {
             key: 'cash',
             icon: LockKeyhole,
             title: 'Corte de caja',
-            description: `Caja abierta desde las ${formatClock(toDate(session.openedAt) ?? new Date())}`,
+            description: `${session.registerName ?? 'Caja'} abierta desde las ${formatClock(toDate(session.openedAt) ?? new Date())}`,
             tone: 'primary',
             onClick: requestClose
           }

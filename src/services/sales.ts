@@ -5,6 +5,7 @@ import { round2 } from '@/lib/utils';
 import { applyPayments, baseToMethod, fxSettingsOf, methodCurrency, paymentMethodsOf, type PaymentDraft } from '@/lib/payments';
 import type { Business, PaymentMethod, Product, RateSource, Sale, SaleItem } from '@/types';
 import { logActivityIn } from './activity';
+import { liveDelta, recordSaleInSession } from './cash';
 import { refs, type Actor } from './refs';
 
 export class CheckoutError extends Error {}
@@ -27,6 +28,8 @@ export interface CheckoutInput {
   cashReceived?: number | null;
   customerName?: string;
   sessionId?: string | null;
+  /** Caja del turno: si la hay, la venta se suma al acumulado compartido del turno. */
+  registerId?: string | null;
   /** Catálogo local (para validar stock si no hay conexión). */
   products: Product[];
 }
@@ -144,6 +147,7 @@ export async function checkout(input: CheckoutInput): Promise<Sale> {
     cashierId: actor.uid,
     cashierName: actor.name,
     sessionId: input.sessionId ?? null,
+    registerId: input.sessionId ? (input.registerId ?? null) : null,
     status: 'completed' as const
   };
 
@@ -243,6 +247,11 @@ export async function checkout(input: CheckoutInput): Promise<Sale> {
     }
   }
 
+  // Caja compartida: suma la venta al acumulado del turno (lo usa el corte, sin leer ventas de otros).
+  if (base.sessionId && base.registerId) {
+    recordSaleInSession(bid, base.sessionId, actor, base, methods, fx.enabled ? fx.localCurrency : null);
+  }
+
   return {
     id: saleRef.id,
     ...base,
@@ -264,6 +273,13 @@ export async function voidSale(bid: string, actor: Actor, saleId: string, reason
     const qtyByProduct = aggregateQty(sale.items);
     const ids = Array.from(qtyByProduct.keys());
     const snaps = await Promise.all(ids.map((id) => tx.get(refs.product(bid, id))));
+    // Venta de una caja compartida con el turno aún abierto: se descuenta de su acumulado.
+    // (Si el turno ya se cerró, el corte quedó como se hizo.)
+    const sessionRef = sale.registerId && sale.sessionId ? refs.cashSession(bid, sale.sessionId) : null;
+    const sessionSnap = sessionRef ? await tx.get(sessionRef) : null;
+    if (sessionRef && sessionSnap?.exists() && sessionSnap.data().status === 'open') {
+      tx.update(sessionRef, liveDelta(sale, -1));
+    }
 
     tx.update(refs.sale(bid, saleId), {
       status: 'voided',

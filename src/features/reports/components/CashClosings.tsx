@@ -37,7 +37,7 @@ function closedLabel(s: CashSession) {
 }
 
 function shiftLabel(s: CashSession) {
-  return `Turno ${hhmm(s.openedAt)}–${hhmm(s.closedAt)}`;
+  return `${s.registerName ? `${s.registerName} · ` : ''}Turno ${hhmm(s.openedAt)}–${hhmm(s.closedAt)}`;
 }
 
 function Difference({ value, format }: { value: number | null | undefined; format: (n: number) => string }) {

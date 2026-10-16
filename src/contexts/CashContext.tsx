@@ -1,34 +1,185 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { limit, onSnapshot, query, where } from 'firebase/firestore';
-import { Banknote, CreditCard, Landmark, LockKeyhole, Printer, Wallet } from 'lucide-react';
-import { Badge, Button, Field, Modal, NumberInput, Spinner, Textarea, useToast } from '@/components/ui';
+import { ArrowLeft, Banknote, ChevronRight, CreditCard, Landmark, LockKeyhole, Printer, Store, Wallet } from 'lucide-react';
+import { Badge, Button, Field, Modal, NumberInput, Spinner, StatusDot, Textarea, useToast } from '@/components/ui';
 import { PrintArea } from '@/components/receipt/Receipt';
-import { currencySymbol as currencySymbolOf, formatDateTime } from '@/lib/format';
+import { currencySymbol as currencySymbolOf, formatDateTime, formatTime } from '@/lib/format';
+import { activeRegisters } from '@/lib/registers';
 import { cn, errorMessage, round2 } from '@/lib/utils';
-import { closeCashSession, getSessionSummary, openCashSession } from '@/services/cash';
+import { closeCashSession, getSessionSummary, joinCashSession, openCashSession } from '@/services/cash';
 import { refs } from '@/services/refs';
-import type { CashSession, PaymentTotals } from '@/types';
+import type { CashRegister, CashSession, PaymentTotals, RegisterState } from '@/types';
 import { useBusiness } from './BusinessContext';
 import { useFx } from './FxContext';
 
+/** Una caja del negocio con su estado en vivo. */
+export interface RegisterView {
+  register: CashRegister;
+  /** Quién abrió el turno en curso (null si la caja está cerrada). */
+  openBy: { uid: string; name: string; at: RegisterState['openedAt'] } | null;
+}
+
 interface CashContextValue {
-  /** Caja abierta del usuario actual (o null). */
+  /** Turno de caja con el que cobra este equipo (o null). */
   session: CashSession | null;
   loading: boolean;
-  /** Abre el modal de apertura de caja. */
+  /** Cajas en uso del negocio y si están abiertas. */
+  registers: RegisterView[];
+  /** Caja que usa este equipo (null si hay varias y todavía no se eligió). */
+  register: CashRegister | null;
+  /** El negocio tiene más de una caja en uso. */
+  multiRegister: boolean;
+  /** Abre el modal de apertura de caja (o para elegir caja, si hay varias). */
   requestOpen: () => void;
+  /** Elegir en qué caja cobra este equipo (negocios con varias cajas). */
+  requestSwitch: () => void;
   /** Abre el modal de corte / cierre de caja. */
   requestClose: () => void;
 }
 
 const CashContext = createContext<CashContextValue | null>(null);
 
+const registerKey = (bid: string) => `nabux:register:${bid}`;
+
+function readSelected(bid: string | null) {
+  if (!bid) return null;
+  try {
+    return localStorage.getItem(registerKey(bid));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Caja del negocio. Cada caja admite un solo turno abierto y lo comparten todos los que cobran en
+ * ella: si alguien ya la abrió, los demás la ven abierta y venden en el mismo turno. Con varias
+ * cajas, cada equipo elige en cuál cobra (se recuerda en el equipo).
+ */
 export function CashProvider({ children }: { children: ReactNode }) {
-  const { businessId, actor, status, can } = useBusiness();
+  const { businessId, business, actor, status, can } = useBusiness();
   const canPos = can('pos');
-  const [session, setSession] = useState<CashSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [openModal, setOpenModal] = useState(false);
+  const ready = !!businessId && status === 'ready' && !!actor.uid && canPos;
+  const registerList = useMemo(() => activeRegisters(business), [business]);
+  const registersKey = registerList.map((r) => r.id).join('|');
+
+  const [selected, setSelected] = useState<string | null>(() => readSelected(businessId));
+  useEffect(() => setSelected(readSelected(businessId)), [businessId]);
+  const register = registerList.length === 1 ? registerList[0] : (registerList.find((r) => r.id === selected) ?? null);
+
+  const selectRegister = useCallback(
+    (rid: string) => {
+      setSelected(rid);
+      try {
+        if (businessId) localStorage.setItem(registerKey(businessId), rid);
+      } catch {
+        /* sin almacenamiento local */
+      }
+    },
+    [businessId]
+  );
+
+  // Estado en vivo de cada caja (el candado dice qué turno tiene abierto).
+  const [locks, setLocks] = useState<Record<string, RegisterState | null>>({});
+  const [locksReady, setLocksReady] = useState(false);
+  useEffect(() => {
+    setLocks({});
+    setLocksReady(false);
+    if (!ready || !businessId) return;
+    const ids = registersKey.split('|');
+    const pending = new Set(ids);
+    const loaded = (id: string) => {
+      pending.delete(id);
+      if (!pending.size) setLocksReady(true);
+    };
+    const unsubs = ids.map((id) =>
+      onSnapshot(
+        refs.register(businessId, id),
+        (snap) => {
+          setLocks((prev) => ({ ...prev, [id]: snap.exists() ? (snap.data({ serverTimestamps: 'estimate' }) as RegisterState) : null }));
+          loaded(id);
+        },
+        (err) => {
+          console.error('Error leyendo el estado de la caja', err);
+          loaded(id);
+        }
+      )
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [ready, businessId, registersKey]);
+
+  // Turno abierto en la caja de este equipo.
+  const lockSessionId = register ? (locks[register.id]?.openSessionId ?? null) : null;
+  const [regSession, setRegSession] = useState<CashSession | null>(null);
+  const [regLoading, setRegLoading] = useState(false);
+  useEffect(() => {
+    setRegSession(null);
+    if (!ready || !businessId || !lockSessionId) {
+      setRegLoading(false);
+      return;
+    }
+    setRegLoading(true);
+    return onSnapshot(
+      refs.cashSession(businessId, lockSessionId),
+      (snap) => {
+        const s = snap.exists() ? ({ id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) } as CashSession) : null;
+        setRegSession(s?.status === 'open' ? s : null);
+        setRegLoading(false);
+      },
+      (err) => {
+        console.error('Error leyendo el turno de caja', err);
+        setRegLoading(false);
+      }
+    );
+  }, [ready, businessId, lockSessionId]);
+
+  // Turno de la versión anterior (caja personal sin caja registradora): se muestra hasta cerrarlo.
+  const [legacy, setLegacy] = useState<CashSession | null>(null);
+  const [legacyLoading, setLegacyLoading] = useState(true);
+  useEffect(() => {
+    setLegacy(null);
+    setLegacyLoading(true);
+    if (!ready || !businessId) {
+      setLegacyLoading(false);
+      return;
+    }
+    return onSnapshot(
+      query(refs.cashSessions(businessId), where('openedBy', '==', actor.uid), where('status', '==', 'open'), limit(5)),
+      (snap) => {
+        const old = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }) as CashSession).find((s) => !s.registerId);
+        setLegacy(old ?? null);
+        setLegacyLoading(false);
+      },
+      (err) => {
+        console.error('Error leyendo caja', err);
+        setLegacyLoading(false);
+      }
+    );
+  }, [ready, businessId, actor.uid]);
+
+  const session = legacy ?? regSession;
+  const loading = ready && (!locksReady || regLoading || legacyLoading);
+
+  // Quien empieza a cobrar en un turno abierto por otra persona queda registrado como cajero del turno.
+  const joinedRef = useRef('');
+  useEffect(() => {
+    if (!businessId || !regSession || regSession.cashierIds?.includes(actor.uid)) return;
+    const key = `${regSession.id}:${actor.uid}`;
+    if (joinedRef.current === key) return;
+    joinedRef.current = key;
+    joinCashSession(businessId, regSession.id, actor.uid);
+  }, [businessId, regSession, actor.uid]);
+
+  const registers = useMemo<RegisterView[]>(
+    () =>
+      registerList.map((r) => {
+        const l = locks[r.id];
+        return { register: r, openBy: l?.openSessionId ? { uid: l.openedBy ?? '', name: l.openedByName ?? 'otra persona', at: l.openedAt } : null };
+      }),
+    [registerList, locks]
+  );
+  const multiRegister = registerList.length > 1;
+
+  const [openModal, setOpenModal] = useState<null | 'open' | 'pick'>(null);
   const [closeModal, setCloseModal] = useState(false);
   // Copia fija de la sesión que se está cerrando: al cerrarla deja de estar "abierta" y el
   // modal debe seguir montado para mostrar el resumen del corte.
@@ -36,40 +187,29 @@ export function CashProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef<CashSession | null>(null);
   sessionRef.current = session;
 
-  useEffect(() => {
-    setSession(null);
-    setLoading(true);
-    if (!businessId || status !== 'ready' || !actor.uid || !canPos) {
-      setLoading(false);
-      return;
-    }
-    return onSnapshot(
-      query(refs.cashSessions(businessId), where('openedBy', '==', actor.uid), where('status', '==', 'open'), limit(1)),
-      (snap) => {
-        const d = snap.docs[0];
-        setSession(d ? ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) } as CashSession) : null);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error leyendo caja', err);
-        setLoading(false);
-      }
-    );
-  }, [businessId, status, actor.uid, canPos]);
-
-  const requestOpen = useCallback(() => setOpenModal(true), []);
+  const requestOpen = useCallback(() => setOpenModal(multiRegister && !register ? 'pick' : 'open'), [multiRegister, register]);
+  const requestSwitch = useCallback(() => setOpenModal('pick'), []);
   const requestClose = useCallback(() => {
     if (!sessionRef.current) return;
     setClosing(sessionRef.current);
     setCloseModal(true);
   }, []);
 
-  const value = useMemo(() => ({ session, loading, requestOpen, requestClose }), [session, loading, requestOpen, requestClose]);
+  const value = useMemo(
+    () => ({ session, loading, registers, register, multiRegister, requestOpen, requestSwitch, requestClose }),
+    [session, loading, registers, register, multiRegister, requestOpen, requestSwitch, requestClose]
+  );
 
   return (
     <CashContext.Provider value={value}>
       {children}
-      <OpenCashModal open={openModal} onClose={() => setOpenModal(false)} />
+      <OpenCashModal
+        mode={openModal}
+        onClose={() => setOpenModal(null)}
+        registers={registers}
+        current={register}
+        onSelect={selectRegister}
+      />
       {closing && (
         <CloseCashModal
           open={closeModal}
@@ -92,7 +232,19 @@ export function useCash() {
 
 /* ------------------------------------------------------------------ */
 
-function OpenCashModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function OpenCashModal({
+  mode,
+  onClose,
+  registers,
+  current,
+  onSelect
+}: {
+  mode: null | 'open' | 'pick';
+  onClose: () => void;
+  registers: RegisterView[];
+  current: CashRegister | null;
+  onSelect: (rid: string) => void;
+}) {
   const { businessId, actor, money, currencySymbol } = useBusiness();
   const fx = useFx();
   const toast = useToast();
@@ -100,27 +252,39 @@ function OpenCashModal({ open, onClose }: { open: boolean; onClose: () => void }
   const [amountLocal, setAmountLocal] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  // Caja que se va a abrir (null = elegir de la lista).
+  const [target, setTarget] = useState<CashRegister | null>(null);
+  const open = mode !== null;
+  const multi = registers.length > 1;
 
   useEffect(() => {
-    if (open) {
-      setAmount('');
-      setAmountLocal('');
-      setNotes('');
-    }
-  }, [open]);
+    if (!mode) return;
+    setAmount('');
+    setAmountLocal('');
+    setNotes('');
+    setTarget(mode === 'open' ? (current ?? registers[0]?.register ?? null) : null);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const use = (v: RegisterView) => {
+    onSelect(v.register.id);
+    toast.success(`Cobrando en ${v.register.name} (turno de ${v.openBy?.name}).`);
+    onClose();
+  };
 
   const submit = async () => {
-    if (!businessId) return;
+    if (!businessId || !target) return;
     setSaving(true);
     try {
       await openCashSession(
         businessId,
         actor,
+        target,
         Number(amount) || 0,
         notes.trim(),
         fx.enabled ? { amount: Number(amountLocal) || 0, currency: fx.localCurrency } : null
       );
-      toast.success('Caja abierta. ¡Buen turno!');
+      onSelect(target.id);
+      toast.success(`${multi ? target.name : 'Caja'} abierta. ¡Buen turno!`);
       onClose();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -129,11 +293,51 @@ function OpenCashModal({ open, onClose }: { open: boolean; onClose: () => void }
     }
   };
 
+  // ---- Elegir caja ----
+  if (open && !target) {
+    return (
+      <Modal open={open} onClose={onClose} title="¿En qué caja vas a cobrar?" subtitle="Este equipo recordará la caja que elijas." icon={Store} size="sm">
+        <div className="flex flex-col gap-2">
+          {registers.map((v) => {
+            const here = v.register.id === current?.id;
+            return (
+              <button
+                key={v.register.id}
+                type="button"
+                onClick={() => (v.openBy ? use(v) : setTarget(v.register))}
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors',
+                  here ? 'border-primary/40 bg-primary-fixed/15' : 'border-slate-200 bg-white hover:bg-surface-container-low'
+                )}
+              >
+                <StatusDot tone={v.openBy ? 'success' : 'neutral'} pulse={!!v.openBy} />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex items-center gap-2 text-label-lg text-on-surface">
+                    <span className="truncate">{v.register.name}</span>
+                    {here && <Badge tone="primary">Este equipo</Badge>}
+                  </span>
+                  <span className="truncate text-body-sm text-on-surface-variant">
+                    {v.openBy ? `Abierta por ${v.openBy.name}${v.openBy.at ? ` desde las ${formatTime(v.openBy.at)}` : ''}` : 'Cerrada'}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1 text-label-md text-primary">
+                  {v.openBy ? 'Usar' : 'Abrir'}
+                  <ChevronRight className="size-4" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Modal>
+    );
+  }
+
+  // ---- Abrir turno ----
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Abrir caja"
+      title={multi && target ? `Abrir ${target.name}` : 'Abrir caja'}
       subtitle={
         fx.enabled
           ? 'Registra el efectivo con el que comienzas el turno, en cada moneda.'
@@ -144,9 +348,15 @@ function OpenCashModal({ open, onClose }: { open: boolean; onClose: () => void }
       dismissible={!saving}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
+          {multi ? (
+            <Button variant="ghost" icon={ArrowLeft} onClick={() => setTarget(null)} disabled={saving} className="sm:mr-auto">
+              Otra caja
+            </Button>
+          ) : (
+            <Button variant="ghost" onClick={onClose} disabled={saving}>
+              Cancelar
+            </Button>
+          )}
           <Button onClick={submit} loading={saving} icon={LockKeyhole}>
             Abrir caja
           </Button>
@@ -195,8 +405,12 @@ function OpenCashModal({ open, onClose }: { open: boolean; onClose: () => void }
           </Field>
         )}
         <Field label="Notas (opcional)">
-          <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ej. Turno mañana, caja 1" />
+          <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ej. Turno mañana" />
         </Field>
+        <p className="text-body-sm text-on-surface-variant">
+          Quien entre después a cobrar en {multi && target ? target.name : 'esta caja'} verá el turno abierto y venderá en él; el corte suma
+          las ventas de todos.
+        </p>
       </div>
     </Modal>
   );
@@ -231,6 +445,11 @@ function CloseCashModal({ open, onClose, session }: { open: boolean; onClose: ()
   const [closed, setClosed] = useState<CloseResult | null>(null);
   const moneyL = (n: number | null | undefined) => (localCurrency ? fx.moneyIn(n, localCurrency) : '—');
 
+  // Solo se reinicia al abrir el modal o cambiar de turno: si el negocio se actualiza mientras tanto
+  // (p. ej. alguien guarda la configuración), no se pierde lo que se está contando ni el resultado del corte.
+  const optsRef = useRef(opts);
+  optsRef.current = opts;
+  const sessionId = session.id;
   useEffect(() => {
     if (!open || !businessId) return;
     setSummary(null);
@@ -238,10 +457,10 @@ function CloseCashModal({ open, onClose, session }: { open: boolean; onClose: ()
     setDeclaredLocal('');
     setNotes('');
     setClosed(null);
-    getSessionSummary(businessId, session, opts)
+    getSessionSummary(businessId, session, optsRef.current)
       .then(({ totals, expectedCash, expectedCashLocal }) => setSummary({ totals, expectedCash, expectedCashLocal }))
       .catch((e) => toast.error(errorMessage(e)));
-  }, [open, businessId, session, toast, opts]);
+  }, [open, businessId, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const difference = summary && declared !== '' ? round2(Number(declared) - summary.expectedCash) : null;
   const differenceLocal =
@@ -278,7 +497,7 @@ function CloseCashModal({ open, onClose, session }: { open: boolean; onClose: ()
       open={open}
       onClose={onClose}
       title={closed ? 'Caja cerrada' : 'Corte de caja'}
-      subtitle={`Abierta ${formatDateTime(session.openedAt)} por ${session.openedByName}`}
+      subtitle={`${session.registerName ? `${session.registerName} · ` : ''}Abierta ${formatDateTime(session.openedAt)} por ${session.openedByName}`}
       icon={Banknote}
       size="md"
       dismissible={!saving}
@@ -421,8 +640,10 @@ function CloseCashModal({ open, onClose, session }: { open: boolean; onClose: ()
             <div className="text-center text-[14px] font-bold uppercase">{business.name}</div>
             <div className="text-center">CORTE DE CAJA</div>
             <div className="my-2 border-t border-dashed border-black" />
-            <div>Cajero: {session.openedByName}</div>
+            {session.registerName && <div>Caja: {session.registerName}</div>}
+            <div>Abrió: {session.openedByName}</div>
             <div>Apertura: {formatDateTime(session.openedAt)}</div>
+            <div>Cerró: {actor.name}</div>
             <div>Cierre: {formatDateTime(new Date())}</div>
             <div className="my-2 border-t border-dashed border-black" />
             <PrintRow label="Fondo inicial" value={money(session.openingFloat)} />

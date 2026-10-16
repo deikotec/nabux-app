@@ -10,9 +10,9 @@ export function CashNotice({ onOpen }: { onOpen: () => void }) {
           <LockKeyhole className="size-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-label-lg text-amber-900">Tu caja está cerrada</p>
+          <p className="text-label-lg text-amber-900">La caja está cerrada</p>
           <p className="text-body-sm text-amber-800">
-            Puedes armar el ticket, pero para cobrar necesitas abrir caja y registrar el fondo inicial en efectivo.
+            Puedes armar el ticket, pero para cobrar alguien tiene que abrir la caja y registrar el fondo inicial en efectivo.
           </p>
         </div>
       </div>

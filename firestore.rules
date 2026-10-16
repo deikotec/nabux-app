@@ -16,6 +16,8 @@ service cloud.firestore {
     function myEmail() { return request.auth.token.email.lower(); }
 
     function bizPath(bid) { return /databases/$(database)/documents/businesses/$(bid); }
+    function sessionPath(bid, sid) { return /databases/$(database)/documents/businesses/$(bid)/cashSessions/$(sid); }
+    function registerPath(bid, rid) { return /databases/$(database)/documents/businesses/$(bid)/registers/$(rid); }
     function memberPath(bid) { return /databases/$(database)/documents/businesses/$(bid)/members/$(request.auth.uid); }
     function invitePath(bid) { return /databases/$(database)/documents/invites/$(bid + '_' + myEmail()); }
 
@@ -200,17 +202,61 @@ service cloud.firestore {
       }
 
       // ---------- Caja ----------
+      // Turnos con caja registradora (registerId): los comparten todos los que cobran en esa caja.
+      // Turnos sin caja: versión anterior (caja personal de quien la abrió).
       match /cashSessions/{sid} {
-        allow read: if can(bid, 'reports') || (isMember(bid) && resource.data.openedBy == uid());
+        allow read: if can(bid, 'reports')
+          || (isMember(bid) && (resource == null
+              || resource.data.openedBy == uid()
+              || (canAny(bid, ['pos', 'void']) && resource.data.get('registerId', null) is string)));
         allow create: if can(bid, 'pos')
           && request.resource.data.openedBy == uid()
           && request.resource.data.status == 'open'
-          && request.resource.data.openingFloat is number;
-        allow update: if isMember(bid)
-          && resource.data.status == 'open'
-          && request.resource.data.status == 'closed'
-          && request.resource.data.openedBy == resource.data.openedBy
-          && (resource.data.openedBy == uid() || can(bid, 'reports'));
+          && request.resource.data.openingFloat is number
+          // Con caja: en el mismo paso el candado de la caja debe apuntar a este turno (uno por caja).
+          && (request.resource.data.get('registerId', null) == null
+              || getAfter(registerPath(bid, request.resource.data.registerId)).data.openSessionId == sid);
+        allow update: if isMember(bid) && (
+          // Corte: de abierto a cerrado, sin cambiar quién lo abrió ni la caja.
+          (resource.data.status == 'open'
+            && request.resource.data.status == 'closed'
+            && request.resource.data.openedBy == resource.data.openedBy
+            && request.resource.data.get('registerId', null) == resource.data.get('registerId', null)
+            && (resource.data.openedBy == uid()
+                || can(bid, 'reports')
+                || (resource.data.get('registerId', null) is string && can(bid, 'pos'))))
+          ||
+          // Cajas compartidas: cada venta o anulación suma al acumulado y registra al cajero.
+          (resource.data.get('registerId', null) is string
+            && canAny(bid, ['pos', 'void'])
+            && changedOnly(['live', 'cashierIds']))
+        );
+        allow delete: if false;
+      }
+
+      // Candado de cada caja: qué turno tiene abierto. Garantiza un solo turno abierto por caja.
+      function opensSession(bid, rid) {
+        return request.resource.data.openSessionId is string
+          && request.resource.data.openedBy == uid()
+          && getAfter(sessionPath(bid, request.resource.data.openSessionId)).data.status == 'open'
+          && getAfter(sessionPath(bid, request.resource.data.openSessionId)).data.registerId == rid
+          && getAfter(sessionPath(bid, request.resource.data.openSessionId)).data.openedBy == uid();
+      }
+      match /registers/{rid} {
+        allow read: if isMember(bid);
+        // Abrir: la caja estaba libre (o su turno ya terminó) y el turno nuevo se crea en el mismo paso.
+        allow create: if can(bid, 'pos') && opensSession(bid, rid);
+        allow update: if
+          (can(bid, 'pos') && opensSession(bid, rid)
+            && (resource.data.get('openSessionId', null) == null
+                || !exists(sessionPath(bid, resource.data.openSessionId))
+                || get(sessionPath(bid, resource.data.openSessionId)).data.status == 'closed'))
+          ||
+          // Cerrar: se libera en el mismo paso en que su turno pasa a cerrado.
+          (canAny(bid, ['pos', 'reports'])
+            && request.resource.data.get('openSessionId', null) == null
+            && resource.data.get('openSessionId', null) is string
+            && getAfter(sessionPath(bid, resource.data.openSessionId)).data.status == 'closed');
         allow delete: if false;
       }
 

@@ -21,6 +21,8 @@ export const refs = {
   movements: (bid: string) => collection(db, 'businesses', bid, 'movements'),
   cashSessions: (bid: string) => collection(db, 'businesses', bid, 'cashSessions'),
   cashSession: (bid: string, id: string) => doc(db, 'businesses', bid, 'cashSessions', id),
+  /** Estado en vivo de cada caja registradora (qué turno tiene abierto). */
+  register: (bid: string, rid: string) => doc(db, 'businesses', bid, 'registers', rid),
   activity: (bid: string) => collection(db, 'businesses', bid, 'activity'),
   invites: () => collection(db, 'invites'),
   invite: (bid: string, email: string) => doc(db, 'invites', inviteId(bid, email))

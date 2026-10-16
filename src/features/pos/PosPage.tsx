@@ -23,7 +23,7 @@ import { PosKpis } from './PosKpis';
 import { ProductGrid } from './ProductGrid';
 import { QuickEntry } from './QuickEntry';
 import { RateNotice, useRateLabel } from './RateControls';
-import { StatusStrip } from './StatusStrip';
+import { MobileStatusRow, StatusStrip } from './StatusStrip';
 import { TicketActions, TicketHeader, TicketLines, TicketTotals } from './TicketPanel';
 import { useAutoPrint, useFitToViewport, useMediaQuery } from './hooks/useDevice';
 import { useHeldTickets } from './hooks/useHeldTickets';
@@ -53,7 +53,7 @@ function sanitizePayments(raw: unknown): PaymentEntry[] {
 export default function PosPage() {
   const { business, businessId, actor, can, money, currencySymbol } = useActiveBusiness();
   const { products, productsById, findByCode, categories, loading: catalogLoading } = useCatalog();
-  const { session, loading: cashLoading, requestOpen, requestClose } = useCash();
+  const { session, loading: cashLoading, requestOpen, requestClose, register, multiRegister, requestSwitch } = useCash();
   const fx = useFx();
   const toast = useToast();
   const { confirm } = useConfirm();
@@ -204,6 +204,15 @@ export default function PosPage() {
   const handleFreeAdd = (name: string, amount: number, taxExempt: boolean) => {
     addFreeAmount(name, amount, taxExempt);
     refocusScanner();
+  };
+
+  /** Barra del celular: elige la forma de pago; si pide referencia, abre el ticket para escribirla. */
+  const handleQuickPay = (methodId: string) => {
+    if (processingRef.current) return;
+    const key = pay.tapMethod(methodId);
+    if (!key) return;
+    setShowPayErrors(false);
+    if (pay.methods.find((m) => m.id === methodId)?.requiresReference) focusPayments(`[data-pay-ref="${CSS.escape(key)}"]`);
   };
 
   /* ---------------- Descuento ---------------- */
@@ -446,6 +455,7 @@ export default function PosPage() {
         changeMethodId: pay.changeMethod?.id ?? null,
         customerName: ticket.customerName,
         sessionId: session?.id ?? null,
+        registerId: session?.registerId ?? null,
         products
       });
       ticket.clear();
@@ -576,42 +586,61 @@ export default function PosPage() {
   const noProducts = !catalogLoading && activeProducts.length === 0;
   const localCurrency = stats.localCurrency;
 
+  const toggleAutoPrint = () => {
+    setAutoPrint(!autoPrint);
+    toast.info(autoPrint ? 'Impresión automática desactivada en este equipo.' : 'El ticket se imprimirá al cobrar.');
+  };
+
   return (
-    <div className={cn(!isDesktop && 'pb-28')}>
-      <PageHeader
-        title="Terminal POS"
-        actions={
-          <>
-            <Button variant="secondary" icon={CirclePause} onClick={() => setHeldOpen(true)}>
-              En espera
-              {held.length > 0 && (
-                <span className="rounded-full bg-tertiary-fixed px-1.5 text-[11px] font-bold text-on-tertiary-fixed-variant tnum">{held.length}</span>
-              )}
-            </Button>
-            <Button variant="secondary" icon={Wallet} onClick={session ? requestClose : requestOpen} disabled={cashLoading}>
-              {session ? 'Corte de caja' : 'Abrir caja'}
-            </Button>
-          </>
-        }
-      />
-
-      <div className="flex flex-col gap-4">
-        <StatusStrip
-          scannerReady={scannerReady}
-          onFocusScanner={focusSearch}
-          session={session}
-          cashLoading={cashLoading}
-          onCashClick={session ? requestClose : requestOpen}
-          online={online}
-          autoPrint={autoPrint}
-          onToggleAutoPrint={() => {
-            setAutoPrint(!autoPrint);
-            toast.info(autoPrint ? 'Impresión automática desactivada en este equipo.' : 'El ticket se imprimirá al cobrar.');
-          }}
-          showRate={fx.enabled}
+    // En el celular la barra del ticket publica su alto en --bottom-bar para no tapar el catálogo.
+    <div className={cn(!isDesktop && 'pt-3 pb-[var(--bottom-bar,0px)]')}>
+      {isDesktop && (
+        <PageHeader
+          title="Terminal POS"
+          actions={
+            <>
+              <Button variant="secondary" icon={CirclePause} onClick={() => setHeldOpen(true)}>
+                En espera
+                {held.length > 0 && (
+                  <span className="rounded-full bg-tertiary-fixed px-1.5 text-[11px] font-bold text-on-tertiary-fixed-variant tnum">{held.length}</span>
+                )}
+              </Button>
+              <Button variant="secondary" icon={Wallet} onClick={session ? requestClose : requestOpen} disabled={cashLoading}>
+                {session ? 'Corte de caja' : 'Abrir caja'}
+              </Button>
+            </>
+          }
         />
+      )}
 
-        {showCashNotice && <CashNotice onOpen={requestOpen} />}
+      <div className="flex flex-col gap-3 lg:gap-4">
+        {isDesktop ? (
+          <StatusStrip
+            scannerReady={scannerReady}
+            onFocusScanner={focusSearch}
+            session={session}
+            cashLoading={cashLoading}
+            onCashClick={session ? requestClose : requestOpen}
+            registerName={multiRegister ? (register?.name ?? null) : null}
+            onSwitchRegister={multiRegister ? requestSwitch : undefined}
+            meUid={actor.uid}
+            online={online}
+            autoPrint={autoPrint}
+            onToggleAutoPrint={toggleAutoPrint}
+            showRate={fx.enabled}
+          />
+        ) : (
+          // Celular: sin título ni franja de estado para que el buscador quede arriba; la caja va en la barra superior.
+          <MobileStatusRow
+            showRate={fx.enabled}
+            heldCount={held.length}
+            onHeldClick={() => setHeldOpen(true)}
+            autoPrint={autoPrint}
+            onToggleAutoPrint={toggleAutoPrint}
+          />
+        )}
+
+        {showCashNotice && isDesktop && <CashNotice onOpen={requestOpen} />}
         <RateNotice />
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,7fr)_minmax(380px,5fr)]">
@@ -628,6 +657,7 @@ export default function PosPage() {
               }}
               onFocusChange={setScannerReady}
               autoFocus={finePointer}
+              compact={!isDesktop}
             />
 
             {noProducts ? (
@@ -720,12 +750,19 @@ export default function PosPage() {
       {!isDesktop && (
         <>
           <MobileTicketBar
+            lineCount={ticket.lines.length}
             itemCount={ticket.totals.itemCount}
             total={ticket.totals.total}
             money={money}
             moneyLocal={moneyLocal}
-            blocked={showCashNotice}
+            pay={pay}
+            igtfRate={fx.enabled && fx.settings.igtfEnabled && fx.settings.igtfRate > 0 ? fx.settings.igtfRate : null}
+            cashBlocked={showCashNotice}
+            processing={processing}
             onOpen={() => setSheetOpen(true)}
+            onQuickPay={handleQuickPay}
+            onCheckout={() => void handleCheckout()}
+            onOpenCash={requestOpen}
           />
           <Modal
             open={sheetOpen}

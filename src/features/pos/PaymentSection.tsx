@@ -49,7 +49,7 @@ const KIND_HINTS: Partial<Record<PaymentKind, string>> = {
   credit: 'Confirma que el financiamiento fue aprobado antes de cobrar.'
 };
 
-function methodIcon(m: Pick<PaymentMethodConfig, 'id' | 'kind'>): LucideIcon {
+export function methodIcon(m: Pick<PaymentMethodConfig, 'id' | 'kind'>): LucideIcon {
   if (m.id === 'transfer') return QrCode;
   return KIND_ICONS[m.kind] ?? Wallet;
 }

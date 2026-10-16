@@ -10,7 +10,7 @@ Aplicación web para que cualquier persona cree su cuenta, registre su negocio y
 | **Panel principal** | Ventas del día/semana/mes con comparación, ticket promedio, valorización del inventario, stock crítico, curva de ingresos, últimas ventas, categorías más vendidas y primeros pasos para negocios nuevos. |
 | **Terminal POS** | Búsqueda y escaneo de códigos (lector USB/Bluetooth), multiplicador `3*CODIGO`, monto libre, descuentos con tope, efectivo/tarjeta/transferencia, cálculo de cambio, tickets en espera, ticket imprimible de 80 mm y atajos de teclado (F2, F8, F9, F10). **Funciona sin internet** (la app es instalable y abre sin conexión): las ventas se sincronizan al volver la conexión. |
 | **Inventario** | Catálogo con filtros, márgenes, niveles de stock, fotos (Storage), entradas de mercancía, mermas, ajustes por conteo, kardex por producto, cambio de categoría en lote y exportación CSV. **Importación** desde Excel (con las fotos de los productos incrustadas), CSV o fotos de listas, facturas y productos (ver abajo). |
-| **Caja** | Apertura con fondo inicial y corte de caja (efectivo esperado vs. contado, diferencias, impresión del corte). |
+| **Caja** | Cajas registradoras configurables (*Configuración → Cajas*). Cada caja admite un solo turno abierto y lo comparten todos los que cobran en ella: si alguien ya la abrió, los demás la ven abierta y venden en el mismo turno; con varias cajas, cada equipo elige en cuál cobra. Apertura con fondo inicial y corte de caja que suma las ventas de todos los cajeros del turno (efectivo esperado vs. contado, diferencias, impresión del corte). |
 | **Ventas** | Historial con filtros, reimpresión de tickets y anulación con motivo (devuelve el stock). |
 | **Reportes** | Ingresos, utilidad, ticket promedio, mermas, rendimiento diario vs. meta, top productos, métodos de pago, mapa de calor por horario, ventas por cajero y categoría, histórico de cortes. |
 | **Personal** | Invitaciones por correo con rol y permisos, suspensión/baja, matriz de roles y **bitácora de auditoría inmutable**. |
@@ -154,7 +154,8 @@ businesses/{bid}                         datos, impuestos, categorías y reglas
   ├─ suppliers/{id}                      proveedores
   ├─ sales/{id}                          ventas (completadas / anuladas)
   ├─ movements/{id}                      kardex (entradas, salidas, ajustes, ventas)
-  ├─ cashSessions/{id}                   aperturas y cortes de caja
+  ├─ cashSessions/{id}                   turnos de caja (apertura, acumulado `live` de ventas y corte)
+  ├─ registers/{id}                      estado de cada caja: turno abierto (candado: uno por caja)
   └─ activity/{id}                       bitácora de auditoría
 ```
 

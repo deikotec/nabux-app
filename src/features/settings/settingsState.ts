@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /** Pestañas de la pantalla (también se usan como valor de ?tab= en la URL). */
-export type SettingsTabId = 'negocio' | 'impuestos' | 'moneda' | 'pagos' | 'reglas' | 'categorias' | 'proveedores' | 'lector';
+export type SettingsTabId = 'negocio' | 'impuestos' | 'moneda' | 'pagos' | 'cajas' | 'reglas' | 'categorias' | 'proveedores' | 'lector';
 
 /** Lo que una pestaña con formulario reporta a la página (para la barra fija y el cambio de pestaña). */
 export interface PendingChanges {

@@ -159,6 +159,8 @@ export interface Business {
   fx?: FxSettings;
   /** Formas de pago del negocio. Si falta, se usan las predeterminadas del país. */
   paymentMethods?: PaymentMethodConfig[];
+  /** Cajas registradoras. Si falta, el negocio tiene una sola ("Caja principal"). */
+  registers?: CashRegister[];
   createdAt?: TS;
   updatedAt?: TS;
 }
@@ -303,6 +305,8 @@ export interface Sale extends SaleTotals {
   cashierId: string;
   cashierName: string;
   sessionId?: string | null;
+  /** Caja registradora donde se cobró. */
+  registerId?: string | null;
   status: 'completed' | 'voided';
   offline?: boolean;
   voidedAt?: TS;
@@ -384,6 +388,45 @@ export interface CashSession {
   differenceLocal?: number | null;
   totals?: PaymentTotals | null;
   notes?: string;
+  /**
+   * Caja registradora del turno. Los turnos sin caja son de la versión anterior (caja personal de
+   * quien la abrió); los turnos con caja los comparten todos los que cobran en ella.
+   */
+  registerId?: string | null;
+  registerName?: string | null;
+  /** Totales que se suman venta a venta (turnos con caja): el corte no necesita leer las ventas de otros. */
+  live?: SessionLive;
+  /** Quiénes han cobrado en este turno. */
+  cashierIds?: string[];
+}
+
+/** Caja registradora del negocio (un cajón / punto de cobro). */
+export interface CashRegister {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+/**
+ * Estado en vivo de una caja (businesses/{bid}/registers/{id}): qué turno tiene abierto.
+ * Funciona como candado: las reglas impiden abrir un segundo turno en la misma caja.
+ */
+export interface RegisterState {
+  openSessionId: string | null;
+  registerName?: string | null;
+  openedBy?: string | null;
+  openedByName?: string | null;
+  openedAt?: TS;
+  closedAt?: TS;
+  closedByName?: string | null;
+}
+
+/** Acumulado de un turno compartido (moneda base, salvo `byMethod[].amount` que va en la moneda del método). */
+export interface SessionLive {
+  total: number;
+  count: number;
+  igtf: number;
+  byMethod: Record<string, MethodTotal>;
 }
 
 export type ActivityType =

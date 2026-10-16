@@ -12,6 +12,8 @@ import { CategoriesTab } from './CategoriesTab';
 import { CurrencyRatesTab } from './CurrencyRatesTab';
 import { InventoryRulesTab } from './InventoryRulesTab';
 import { PaymentMethodsTab } from './PaymentMethodsTab';
+import { RegistersTab } from './RegistersTab';
+import { activeRegisters } from '@/lib/registers';
 import { countActiveRules } from './rules';
 import { ScannerTab } from './ScannerTab';
 import { PendingContext, useNow, type PendingChanges, type SettingsTabId } from './settingsState';
@@ -19,7 +21,7 @@ import { SaveBar } from './SettingsUI';
 import { SuppliersTab } from './SuppliersTab';
 import { TaxReceiptTab } from './TaxReceiptTab';
 
-const TAB_IDS: SettingsTabId[] = ['negocio', 'impuestos', 'moneda', 'pagos', 'reglas', 'categorias', 'proveedores', 'lector'];
+const TAB_IDS: SettingsTabId[] = ['negocio', 'impuestos', 'moneda', 'pagos', 'cajas', 'reglas', 'categorias', 'proveedores', 'lector'];
 
 export default function SettingsPage() {
   const { business, businessId, can } = useActiveBusiness();
@@ -40,12 +42,13 @@ export default function SettingsPage() {
       { value: 'impuestos', label: 'Impuestos y ticket', icon: ReceiptText },
       { value: 'moneda', label: 'Moneda y tasas', icon: ArrowLeftRight },
       { value: 'pagos', label: 'Formas de pago', icon: WalletCards, count: fx.methods.length },
+      { value: 'cajas', label: 'Cajas', icon: Store, count: activeRegisters(business).length },
       { value: 'reglas', label: 'Reglas de inventario', icon: SlidersHorizontal },
       { value: 'categorias', label: 'Categorías', icon: Tags, count: categories.length },
       { value: 'proveedores', label: 'Proveedores', icon: Truck, count: suppliers.length },
       { value: 'lector', label: 'Lector y códigos', icon: ScanBarcode }
     ],
-    [categories.length, suppliers.length, fx.methods.length]
+    [categories.length, suppliers.length, fx.methods.length, business]
   );
 
   const goTo = useCallback(
@@ -164,6 +167,7 @@ export default function SettingsPage() {
           {tab === 'impuestos' && <TaxReceiptTab onNavigate={goTo} />}
           {tab === 'moneda' && <CurrencyRatesTab onNavigate={goTo} />}
           {tab === 'pagos' && <PaymentMethodsTab onNavigate={goTo} />}
+          {tab === 'cajas' && <RegistersTab />}
           {tab === 'reglas' && <InventoryRulesTab onNavigate={goTo} />}
           {tab === 'categorias' && <CategoriesTab />}
           {tab === 'proveedores' && <SuppliersTab />}

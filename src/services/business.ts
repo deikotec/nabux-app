@@ -1,7 +1,7 @@
 import { arrayUnion, doc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { DEFAULT_INVENTORY_SETTINGS, DEFAULT_RECEIPT_FOOTER, DEFAULT_ROLE_PERMISSIONS } from '@/config/app';
-import type { Business, FxSettings, InventorySettings, PaymentMethodConfig } from '@/types';
+import type { Business, CashRegister, FxSettings, InventorySettings, PaymentMethodConfig } from '@/types';
 import { logActivityIn } from './activity';
 import { refs, type Actor } from './refs';
 
@@ -130,6 +130,10 @@ export async function updateInventorySettings(bid: string, settings: InventorySe
 export async function saveCategories(bid: string, categories: string[]) {
   const clean = Array.from(new Set(categories.map((c) => c.trim()).filter(Boolean)));
   await updateDoc(refs.business(bid), { categories: clean, updatedAt: serverTimestamp() });
+}
+
+export async function saveRegisters(bid: string, registers: CashRegister[]) {
+  await updateDoc(refs.business(bid), { registers, updatedAt: serverTimestamp() });
 }
 
 export function actorFrom(member: { uid: string; displayName: string }): Actor {

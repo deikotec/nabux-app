@@ -5,7 +5,7 @@ import { useFx } from '@/contexts/FxContext';
 import { useQueryData, useSalesRange } from '@/hooks/data';
 import { dayKey, rangeFromPreset } from '@/lib/dates';
 import { round2 } from '@/lib/utils';
-import { sumPayments } from '@/services/cash';
+import { liveToTotals, sumPayments } from '@/services/cash';
 import { refs } from '@/services/refs';
 import type { CashSession, Sale } from '@/types';
 
@@ -19,7 +19,8 @@ export function usePosStats(session: CashSession | null) {
   const range = useMemo(() => rangeFromPreset('today'), [today]);
   const todaySales = useSalesRange(range, { mineOnly: true });
 
-  const sessionId = session?.id ?? null;
+  // Turno compartido (con caja): el acumulado ya está en el turno. Turno anterior: se suman mis ventas.
+  const sessionId = session && !session.registerId ? session.id : null;
   const sessionQuery = useMemo(
     () =>
       sessionId && actor.uid
@@ -37,7 +38,7 @@ export function usePosStats(session: CashSession | null) {
 
   return useMemo(() => {
     const done = todaySales.data.filter((s) => s.status === 'completed');
-    const totals = sumPayments(sessionSales.data, { baseCurrency, localCurrency, methods });
+    const totals = session?.registerId ? liveToTotals(session.live, localCurrency) : sumPayments(sessionSales.data, { baseCurrency, localCurrency, methods });
     return {
       todayCount: done.length,
       todayTotal: round2(done.reduce((acc, s) => acc + (Number(s.total) || 0), 0)),
