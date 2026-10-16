@@ -134,6 +134,10 @@
   }
   body {
     overscroll-behavior: none;
+    /* iPhone en horizontal: el contenido no queda bajo la muesca (viewport-fit=cover en index.html). */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    -webkit-tap-highlight-color: transparent;
   }
   /* Montos, SKUs y cantidades sin "baile" de dígitos */
   input[type='number'],

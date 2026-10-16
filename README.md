@@ -8,7 +8,7 @@ Aplicación web para que cualquier persona cree su cuenta, registre su negocio y
 | --- | --- |
 | **Cuenta y negocios** | Registro con correo o Google, verificación de correo, recuperación de contraseña. Asistente para crear el negocio (giro, moneda, impuestos, categorías, logo). Un usuario puede tener o pertenecer a varios negocios. |
 | **Panel principal** | Ventas del día/semana/mes con comparación, ticket promedio, valorización del inventario, stock crítico, curva de ingresos, últimas ventas, categorías más vendidas y primeros pasos para negocios nuevos. |
-| **Terminal POS** | Búsqueda y escaneo de códigos (lector USB/Bluetooth), multiplicador `3*CODIGO`, monto libre, descuentos con tope, efectivo/tarjeta/transferencia, cálculo de cambio, tickets en espera, ticket imprimible de 80 mm y atajos de teclado (F2, F8, F9, F10). **Funciona sin internet**: las ventas se sincronizan al volver la conexión. |
+| **Terminal POS** | Búsqueda y escaneo de códigos (lector USB/Bluetooth), multiplicador `3*CODIGO`, monto libre, descuentos con tope, efectivo/tarjeta/transferencia, cálculo de cambio, tickets en espera, ticket imprimible de 80 mm y atajos de teclado (F2, F8, F9, F10). **Funciona sin internet** (la app es instalable y abre sin conexión): las ventas se sincronizan al volver la conexión. |
 | **Inventario** | Catálogo con filtros, márgenes, niveles de stock, fotos (Storage), entradas de mercancía, mermas, ajustes por conteo, kardex por producto, cambio de categoría en lote y exportación CSV. **Importación** desde Excel (con las fotos de los productos incrustadas), CSV o fotos de listas, facturas y productos (ver abajo). |
 | **Caja** | Apertura con fondo inicial y corte de caja (efectivo esperado vs. contado, diferencias, impresión del corte). |
 | **Ventas** | Historial con filtros, reimpresión de tickets y anulación con motivo (devuelve el stock). |
@@ -50,6 +50,15 @@ La IA corre desde el navegador con **Firebase AI Logic** (sin servidor y sin cla
 5. **App Check → APIs → Firebase AI Logic → Aplicar** (*Enforce*). **No** apliques App Check a Firestore, Storage ni Authentication si el proyecto lo comparte otra app.
 
 En local, pon `VITE_APPCHECK_DEBUG_TOKEN=true`, copia el token que aparece en la consola del navegador y regístralo en *App Check → Administrar tokens de depuración*. Sin la clave, todo funciona con reglas automáticas y la pantalla lo indica. Los modelos por defecto son `gemini-3.5-flash-lite` (texto) y `gemini-3.6-flash` (fotos); se cambian con `VITE_AI_MODEL` / `VITE_AI_VISION_MODEL`.
+
+## App instalable (PWA) y uso sin internet
+
+Nabux se instala como app desde el navegador: en Android/Chrome, menú **⋮ → Instalar app** (o el aviso de instalación); en iPhone/Safari, **Compartir → Agregar a inicio**; en computadora, el ícono de instalar de la barra de direcciones. El ícono abre directo en el inicio de sesión (sin la landing) y tiene accesos directos a *Nueva venta*, *Inventario* y *Ventas*.
+
+- **Abre sin internet.** El service worker (`vite-plugin-pwa` + Workbox, configurado en `vite.config.ts`) guarda toda la app en el dispositivo la primera vez que se visita; los datos los guarda la caché persistente de Firestore. Sin red se puede abrir, recargar y navegar a cualquier sección, y las ventas se sincronizan al volver la conexión. También se guardan las fotos de productos y la tipografía.
+- **Actualizaciones.** Tras un `deploy`, la app avisa *"Hay una versión nueva"* y se actualiza cuando la persona toca **Actualizar** (nunca a mitad de una venta). Busca versiones nuevas al abrir y cada hora.
+- **Móvil.** Respeta la muesca y la barra de inicio del iPhone (`viewport-fit=cover` + `env(safe-area-inset-*)`), oculta los atajos de teclado en pantallas táctiles y muestra el estado *Sin conexión* en la barra superior.
+- **Probarlo en local:** `npm run build && npm run preview`, abre la app, y en DevTools → *Application → Service workers* marca *Offline* y recarga. En `npm run dev` el service worker está desactivado.
 
 ## Stack
 

@@ -390,7 +390,7 @@ export function Heatmap({
     return 'bg-primary text-white';
   };
   return (
-    <div className={cn('overflow-x-auto scrollbar-thin', className)}>
+    <div className={cn('relative overflow-x-auto scrollbar-thin', className)}>
       <table className="w-full border-separate border-spacing-1">
         <thead>
           <tr>

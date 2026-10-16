@@ -366,7 +366,7 @@ export default function InventoryPage() {
                           close();
                           setImportOpen(true);
                         }}
-                        hint={<span className="text-body-sm text-on-surface-variant">Excel, CSV o fotos</span>}
+                        hint={<span className="hidden text-body-sm text-on-surface-variant sm:inline">Excel, CSV o fotos</span>}
                       >
                         Importar productos
                       </MenuItem>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export function useClickOutside<T extends HTMLElement>(onOutside: () => void, active = true) {
@@ -39,14 +39,29 @@ export function Popover({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false), open);
+  const panelRef = useRef<HTMLDivElement>(null);
   const close = () => setOpen(false);
+
+  // En pantallas angostas el panel puede salirse por un costado: se desplaza para que quede completo.
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!open || !panel) return;
+    panel.style.translate = '';
+    const margin = 8;
+    const { left, right } = panel.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth;
+    const shift = left < margin ? margin - left : right > vw - margin ? vw - margin - right : 0;
+    if (shift) panel.style.translate = `${Math.round(shift)}px 0`;
+  }, [open]);
+
   return (
     <div ref={ref} className={cn('relative', className)}>
       {trigger({ open, toggle: () => setOpen((o) => !o) })}
       {open && (
         <div
+          ref={panelRef}
           className={cn(
-            'absolute top-full z-50 mt-2 min-w-56 animate-pop-in rounded-xl border border-slate-200 bg-white p-1.5 shadow-overlay',
+            'absolute top-full z-50 mt-2 max-w-[calc(100vw-1rem)] min-w-56 animate-pop-in rounded-xl border border-slate-200 bg-white p-1.5 shadow-overlay',
             align === 'right' ? 'right-0' : 'left-0',
             panelClassName
           )}

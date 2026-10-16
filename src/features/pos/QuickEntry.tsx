@@ -1,5 +1,6 @@
 import { useId, type Ref } from 'react';
 import { Delete, ScanBarcode } from 'lucide-react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 
 interface QuickEntryProps {
@@ -16,6 +17,7 @@ interface QuickEntryProps {
 export function QuickEntry({ value, onChange, onSubmit, onClear, onFocusChange, autoFocus, ref }: QuickEntryProps) {
   const id = useId();
   const hintId = `${id}-hint`;
+  const wide = useMediaQuery('(min-width: 640px)');
   return (
     <div
       className={cn(
@@ -56,12 +58,12 @@ export function QuickEntry({ value, onChange, onSubmit, onClear, onFocusChange, 
               onSubmit();
             }
           }}
-          placeholder="Escanea el código de barras o escribe el nombre del producto…"
+          placeholder={wide ? 'Escanea el código de barras o escribe el nombre del producto…' : 'Escanea o escribe un producto…'}
           className="h-8 w-full bg-transparent text-headline-sm text-on-surface outline-none placeholder:font-normal placeholder:text-on-surface-variant/60"
         />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 pr-1">
-        <kbd className="hidden rounded bg-surface-container px-2 py-1 font-sans text-data-mono text-on-surface-variant sm:inline">F2</kbd>
+        <kbd className="hidden rounded bg-surface-container px-2 py-1 font-sans text-data-mono text-on-surface-variant sm:inline pointer-coarse:hidden!">F2</kbd>
         <button
           type="button"
           onClick={onClear}

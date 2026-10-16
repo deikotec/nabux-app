@@ -381,7 +381,7 @@ export default function PosPage() {
       : pay.needsRate
         ? 'Sin tasa de cambio no se puede cobrar en bolívares. Actualiza la tasa.'
         : pay.noPayments
-          ? 'Elige cómo paga el cliente (F6).'
+          ? `Elige cómo paga el cliente${finePointer ? ' (F6)' : ''}.`
           : remaining > 0
             ? `Resta ${money(remaining)}${moneyLocal ? ` (${moneyLocal(remaining)})` : ''} por cobrar.`
             : pay.missingRefs.length

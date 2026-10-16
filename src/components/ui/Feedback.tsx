@@ -56,7 +56,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="pointer-events-none fixed right-4 bottom-4 left-4 z-[80] flex flex-col items-end gap-2 sm:left-auto">
+      {/*
+        Móvil: arriba, para no tapar los botones de las hojas inferiores (cobrar, imprimir…).
+        Desde sm: abajo a la derecha, por encima de una barra fija inferior si la hay (--bottom-bar, ej. ticket del POS).
+      */}
+      <div className="pointer-events-none fixed top-[max(0.75rem,env(safe-area-inset-top))] right-4 left-4 z-[80] flex flex-col items-end gap-2 sm:top-auto sm:bottom-[calc(var(--bottom-bar,0px)+max(1rem,env(safe-area-inset-bottom)))] sm:left-auto">
         {items.map((t) => {
           const Icon = toastIcon[t.type];
           return (

@@ -20,6 +20,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { useCash } from '@/contexts/CashContext';
 import { useCatalog } from '@/contexts/CatalogContext';
 import { useOnline } from '@/hooks/data';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROLE_LABELS } from '@/config/app';
 import { formatTime } from '@/lib/format';
 import { cn, productMatches } from '@/lib/utils';
@@ -59,7 +60,7 @@ export function AppLayout() {
       {drawer && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 animate-fade-in bg-slate-900/40" onClick={() => setDrawer(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] animate-pop-in flex-col bg-surface-container-low shadow-overlay">
+          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] animate-pop-in flex-col overflow-y-auto bg-surface-container-low pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] shadow-overlay">
             <button className="absolute top-4 right-3 rounded-lg p-2 text-slate-500 hover:bg-surface-container" onClick={() => setDrawer(false)} aria-label="Cerrar menú">
               <X className="size-5" />
             </button>
@@ -169,7 +170,12 @@ function SidebarContent() {
                       {lowStock.length}
                     </span>
                   ) : item.kbd ? (
-                    <kbd className={cn('rounded px-1.5 py-0.5 text-[11px] font-semibold', isActive ? 'bg-white/20' : 'bg-surface-container-high text-on-surface-variant')}>
+                    <kbd
+                      className={cn(
+                        'rounded px-1.5 py-0.5 text-[11px] font-semibold pointer-coarse:hidden',
+                        isActive ? 'bg-white/20' : 'bg-surface-container-high text-on-surface-variant'
+                      )}
+                    >
                       {item.kbd}
                     </kbd>
                   ) : null}
@@ -231,8 +237,14 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       )}
 
       {!online && (
-        <span className="hidden items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-label-sm text-amber-800 md:inline-flex">
-          <CloudOff className="size-3.5" /> Sin conexión
+        // En móvil solo el ícono (no cabe el texto), pero siempre visible: la app sigue funcionando sin red.
+        <span
+          role="status"
+          title="Sin conexión: puedes seguir vendiendo, se sincroniza al volver la red."
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-50 p-2 text-label-sm text-amber-800 md:px-3 md:py-1.5"
+        >
+          <CloudOff className="size-4 md:size-3.5" aria-hidden />
+          <span className="sr-only md:not-sr-only">Sin conexión</span>
         </span>
       )}
 
@@ -366,6 +378,7 @@ function GlobalSearch() {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useClickOutside<HTMLDivElement>(() => setOpen(false), open);
+  const wide = useMediaQuery('(min-width: 640px)');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -414,12 +427,13 @@ function GlobalSearch() {
             inputRef.current?.blur();
           }
         }}
-        placeholder="Buscar producto, SKU o código…"
-        className="h-10 w-full rounded-lg border border-transparent bg-white pr-16 pl-10 text-body-md shadow-card placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+        placeholder={wide ? 'Buscar producto, SKU o código…' : 'Buscar producto…'}
+        className="h-10 w-full rounded-lg border border-transparent bg-white pr-3 pl-10 text-body-md shadow-card sm:pr-16 placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
       />
       <Kbd className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 sm:block">Ctrl+K</Kbd>
       {open && q.trim() && (
-        <div className="absolute top-full right-0 left-0 z-50 mt-2 animate-pop-in overflow-hidden rounded-xl border border-slate-200 bg-white shadow-overlay">
+        // En móvil el buscador es angosto: los resultados usan todo el ancho de la pantalla.
+        <div className="fixed inset-x-3 top-[4.5rem] z-50 max-h-[calc(100dvh-6rem)] animate-pop-in overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-overlay md:absolute md:inset-x-0 md:top-full md:mt-2 md:max-h-none md:overflow-hidden">
           {results.length === 0 ? (
             <p className="flex items-center gap-2 px-4 py-4 text-body-md text-on-surface-variant">
               <AlertTriangle className="size-4" /> Sin resultados para “{q}”

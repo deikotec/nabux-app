@@ -4,17 +4,21 @@ import { Building2, LogOut, ShieldOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { PERMISSION_LABELS } from '@/config/app';
+import { isStandalone } from '@/lib/pwa';
 import type { Permission } from '@/types';
 import { Button, EmptyState, MenuItem, PageLoader } from '@/components/ui';
 import { Logo } from '@/components/layout/Logo';
 
-/** Solo para usuarios con sesión iniciada. Sin sesión, la raíz muestra `landing` (si se da) y el resto va al login. */
+/**
+ * Solo para usuarios con sesión iniciada. Sin sesión, la raíz muestra `landing` (si se da) y el resto va al login.
+ * La app instalada nunca muestra la landing: abre directo en el login.
+ */
 export function RequireAuth({ landing }: { landing?: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <FullScreenLoader />;
   if (!user) {
-    if (landing && location.pathname === '/') return <>{landing}</>;
+    if (landing && location.pathname === '/' && !isStandalone()) return <>{landing}</>;
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   return <Outlet />;

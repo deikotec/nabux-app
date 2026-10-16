@@ -378,7 +378,8 @@ export function ProductFormModal({ product, defaults, onClose }: { product: Prod
       subtitle={editing ? `${product.name} · SKU ${product.sku}` : 'Ingresa los datos del artículo, código de barras y niveles de stock.'}
       footer={
         <>
-          <Button variant="soft" onClick={onClose} disabled={!!saving} className="sm:mr-auto">
+          {/* En móvil con tres botones no queda espacio para el formulario: se cierra con la X. */}
+          <Button variant="soft" onClick={onClose} disabled={!!saving} className={editing ? 'sm:mr-auto' : 'hidden sm:mr-auto sm:inline-flex'}>
             Cancelar
           </Button>
           {!editing && (

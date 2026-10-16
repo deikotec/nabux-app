@@ -315,7 +315,8 @@ function CreateBusinessWizard({ onCreated }: { onCreated: (bid: string) => void 
             >
               {step > s.id ? <Check className="size-4" /> : s.id}
             </span>
-            <span className={cn('text-label-md', step >= s.id ? 'text-on-surface' : 'text-slate-400')}>{s.title}</span>
+            {/* En móvil solo se nombra el paso actual (si no, el último no cabe). */}
+            <span className={cn('text-label-md', step >= s.id ? 'text-on-surface' : 'text-slate-400', step !== s.id && 'hidden sm:inline')}>{s.title}</span>
             {i < STEPS.length - 1 && <span className="mx-2 h-px w-8 bg-slate-200" />}
           </div>
         ))}

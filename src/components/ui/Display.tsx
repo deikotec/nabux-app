@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from 'react';
+import { useEffect, useRef, type HTMLAttributes, type ReactNode, type TdHTMLAttributes, type ThHTMLAttributes } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronLeft, ChevronRight, ImageOff, Loader2, Package } from 'lucide-react';
 import { initials } from '@/lib/format';
@@ -322,7 +322,12 @@ export function ProductThumb({ product, size = 'md', className }: { product: Pic
 }
 
 export function Kbd({ children, className }: { children: ReactNode; className?: string }) {
-  return <kbd className={cn('rounded bg-surface-container px-1.5 py-0.5 font-sans text-[11px] font-semibold text-on-surface-variant tnum', className)}>{children}</kbd>;
+  // Los atajos de teclado no aplican en pantallas táctiles.
+  return (
+    <kbd className={cn('rounded bg-surface-container px-1.5 py-0.5 font-sans text-[11px] font-semibold text-on-surface-variant tnum pointer-coarse:hidden!', className)}>
+      {children}
+    </kbd>
+  );
 }
 
 /* ---------- Pestañas ---------- */
@@ -361,8 +366,21 @@ export function Segmented<T extends string>({ options, value, onChange, classNam
 
 /** Pestañas tipo píldora con scroll horizontal (secciones de una página). */
 export function TabBar<T extends string>({ tabs, value, onChange, className }: { tabs: TabOption<T>[]; value: T; onChange: (v: T) => void; className?: string }) {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // En móvil no caben todas: la pestaña activa se desplaza a la vista (sin mover la página).
+  useEffect(() => {
+    const list = listRef.current;
+    const active = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !active || list.scrollWidth <= list.clientWidth) return;
+    const left = active.offsetLeft - list.offsetLeft;
+    if (left < list.scrollLeft || left + active.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollTo({ left: Math.max(0, left - 16), behavior: 'smooth' });
+    }
+  }, [value]);
+
   return (
-    <div className={cn('no-scrollbar flex gap-1.5 overflow-x-auto', className)} role="tablist">
+    <div ref={listRef} className={cn('no-scrollbar flex gap-1.5 overflow-x-auto', className)} role="tablist">
       {tabs.map((t) => {
         const active = value === t.value;
         return (
@@ -393,7 +411,8 @@ export function TabBar<T extends string>({ tabs, value, onChange, className }: {
 
 export function Table({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('w-full overflow-x-auto scrollbar-thin', className)}>
+    // "relative": los textos sr-only (position: absolute) quedan dentro del scroll y no ensanchan la página en móvil.
+    <div className={cn('relative w-full overflow-x-auto scrollbar-thin', className)}>
       <table className="w-full min-w-full border-collapse text-left">{children}</table>
     </div>
   );

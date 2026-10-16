@@ -146,7 +146,7 @@ export default function StaffPage() {
         />
 
         <div className="flex flex-col gap-4">
-          <TabBar tabs={tabs} value={tab} onChange={setTab} />
+          <TabBar tabs={tabs} value={tab} onChange={setTab} className="-mx-4 px-4 sm:mx-0 sm:px-0" />
 
           <div role="tabpanel" aria-label={tabs.find((t) => t.value === tab)?.label} className="flex flex-col gap-6">
             {tab === 'list' && (

@@ -64,7 +64,7 @@ export function ProductGrid({
           <p className="text-label-lg text-on-surface">Sin resultados{query.trim() ? ` para “${query.trim()}”` : ''}</p>
           <p className="max-w-sm text-body-sm text-on-surface-variant">
             {category ? `Estás filtrando por “${category}”. Prueba con “Todos” o ` : 'Prueba '}
-            con otro nombre, SKU o código de barras. También puedes cobrar un monto libre (F3).
+            con otro nombre, SKU o código de barras. También puedes cobrar un monto libre<span className="pointer-coarse:hidden"> (F3)</span>.
           </p>
         </div>
       )}
@@ -212,7 +212,7 @@ function FreeAmountCard({ onClick }: { onClick: () => void }) {
       <span className="mt-auto pt-2">
         <span className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary-container py-1.5 text-label-md text-on-primary-container transition-colors group-hover:bg-primary">
           <PenLine className="size-4" />
-          Monto (F3)
+          Monto<span className="pointer-coarse:hidden"> (F3)</span>
         </span>
       </span>
     </button>

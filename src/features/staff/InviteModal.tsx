@@ -151,7 +151,8 @@ export function InviteModal({
       subtitle="Asigna rol, turno y permisos. La persona se une al aceptar la invitación desde la app."
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={!!saving} className="sm:mr-auto">
+          {/* En móvil con tres botones no queda espacio para el formulario: se cierra con la X. */}
+          <Button variant="ghost" onClick={onClose} disabled={!!saving} className="hidden sm:mr-auto sm:inline-flex">
             Cancelar
           </Button>
           <Button variant="secondary" icon={UserPlus} onClick={() => submit('another')} loading={saving === 'another'} disabled={!!saving}>

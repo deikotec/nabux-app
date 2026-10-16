@@ -4,6 +4,7 @@ import { ArrowRightLeft, CircleAlert, PencilLine, RefreshCw, TriangleAlert } fro
 import { RATE_SOURCE_LABELS } from '@/config/app';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useFx } from '@/contexts/FxContext';
+import { useOnline } from '@/hooks/data';
 import { formatDate, formatPercent, formatRelative, toDate } from '@/lib/format';
 import { cn, errorMessage } from '@/lib/utils';
 import { Badge, Button, Card, Skeleton, useToast } from '@/components/ui';
@@ -23,6 +24,7 @@ const SOURCES: { key: RateSource; label: string; hint: string }[] = [
  */
 export function FxRateCard({ onEdit }: { onEdit: () => void }) {
   const fx = useFx();
+  const online = useOnline();
   const { can } = useBusiness();
   const toast = useToast();
   const history = useFxHistory(fx.enabled);
@@ -106,7 +108,16 @@ export function FxRateCard({ onEdit }: { onEdit: () => void }) {
           </div>
           {fx.canEditRates && (
             <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-              <Button size="sm" variant="secondary" icon={RefreshCw} loading={fx.refreshing} onClick={refresh} className="flex-1 sm:flex-none">
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={RefreshCw}
+                loading={fx.refreshing}
+                disabled={!online}
+                title={online ? undefined : 'Sin conexión'}
+                onClick={refresh}
+                className="flex-1 sm:flex-none"
+              >
                 Actualizar desde internet
               </Button>
               <Button size="sm" variant="ghost" icon={PencilLine} onClick={onEdit} className="flex-1 sm:flex-none">

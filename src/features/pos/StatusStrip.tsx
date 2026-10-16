@@ -61,7 +61,8 @@ export function StatusStrip({
             <span className={cn('relative inline-flex size-2.5 rounded-full', scannerReady ? 'bg-primary' : 'bg-amber-500')} />
           </span>
           <span className={cn('text-label-sm tracking-wider uppercase', scannerReady ? 'text-primary' : 'text-amber-800')}>
-            {scannerReady ? 'Lector listo' : 'Lector en pausa · F2'}
+            {scannerReady ? 'Lector listo' : 'Lector en pausa'}
+            {!scannerReady && <span className="pointer-coarse:hidden"> · F2</span>}
           </span>
         </button>
 
@@ -122,7 +123,7 @@ export function StatusStrip({
         </button>
       </div>
 
-      <div className="hidden items-center gap-1.5 rounded-lg bg-surface-container-lowest px-2 py-1 shadow-card md:flex" aria-label="Atajos de teclado">
+      <div className="hidden items-center gap-1.5 rounded-lg bg-surface-container-lowest px-2 py-1 shadow-card md:flex pointer-coarse:hidden!" aria-label="Atajos de teclado">
         <span className="hidden text-label-sm text-on-surface-variant 2xl:inline">Atajos:</span>
         {SHORTCUTS.map((s) => (
           <kbd

@@ -260,7 +260,7 @@ export function MembersTable({
               setRoleFilter(v as 'all' | Role);
               setPage(1);
             }}
-            options={[{ value: 'all', label: 'Todos los roles' }, ...ROLE_ORDER.map((r) => ({ value: r, label: ROLE_LABELS[r] }))]}
+            options={[{ value: 'all', label: 'Todos' }, ...ROLE_ORDER.map((r) => ({ value: r, label: ROLE_LABELS[r] }))]}
           />
           <FilterSelect
             icon={CircleDot}

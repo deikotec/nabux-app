@@ -15,6 +15,7 @@ import RegisterPage from '@/features/auth/RegisterPage';
 import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage';
 import OnboardingPage from '@/features/onboarding/OnboardingPage';
 import { SetupRequired } from '@/app/SetupRequired';
+import { PwaPrompt } from '@/app/PwaPrompt';
 
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
 const PosPage = lazy(() => import('@/features/pos/PosPage'));
@@ -39,6 +40,7 @@ export default function App() {
       <ToastProvider>
         <ConfirmProvider>
           <AuthProvider>
+            <PwaPrompt />
             <BusinessProvider>
               <FxProvider>
                 <CatalogProvider>

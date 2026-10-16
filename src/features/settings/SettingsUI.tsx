@@ -175,7 +175,7 @@ export function SaveBar({ pending }: { pending: PendingChanges }) {
     <div
       role="region"
       aria-label="Cambios sin guardar"
-      className="sticky bottom-4 z-20 mt-6 flex animate-pop-in flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-overlay sm:flex-row sm:items-center sm:justify-between"
+      className="sticky bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 mt-6 flex animate-pop-in flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-overlay sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex min-w-0 items-center gap-3">
         <span className="relative flex size-2.5 shrink-0">

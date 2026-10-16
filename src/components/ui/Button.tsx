@@ -86,7 +86,7 @@ export function Button({
       {kbd && (
         <kbd
           className={cn(
-            'ml-auto rounded px-1.5 py-0.5 font-sans text-[11px] font-semibold tnum',
+            'ml-auto rounded px-1.5 py-0.5 font-sans text-[11px] font-semibold tnum pointer-coarse:hidden',
             variant === 'primary' || variant === 'dark' ? 'bg-white/15 text-white' : 'bg-surface-container text-on-surface-variant'
           )}
         >

@@ -1,6 +1,7 @@
 import type { KeyboardEvent, Ref } from 'react';
 import { ChevronDown, CornerDownLeft, FunnelX, ScanBarcode } from 'lucide-react';
 import { Button, Kbd, SearchInput } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import type { Product, Supplier } from '@/types';
 import { DEFAULT_FILTERS, hasActiveFilters, NO_SUPPLIER, SORT_OPTIONS, STATUS_OPTIONS, taxOptions, type Filters, type TaxFilter } from './helpers';
@@ -71,6 +72,7 @@ interface Props {
 
 export function FilterBar({ filters, onChange, onClear, categories, suppliers, searchRef, exactMatch, onOpenMatch, showTax, taxName = 'IVA' }: Props) {
   const active = hasActiveFilters(filters);
+  const wide = useMediaQuery('(min-width: 640px)');
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -94,7 +96,7 @@ export function FilterBar({ filters, onChange, onClear, categories, suppliers, s
             onChange={(v) => onChange({ search: v })}
             onKeyDown={onKeyDown}
             icon={ScanBarcode}
-            placeholder="Escanea EAN-13, SKU o escribe un nombre…"
+            placeholder={wide ? 'Escanea EAN-13, SKU o escribe un nombre…' : 'Nombre, SKU o código de barras…'}
           />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center 2xl:flex-nowrap 2xl:justify-end">

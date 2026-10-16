@@ -103,7 +103,11 @@ export function Modal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4 sm:pr-[max(1rem,env(safe-area-inset-right))] sm:pl-[max(1rem,env(safe-area-inset-left))]"
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="absolute inset-0 animate-fade-in bg-slate-900/45 backdrop-blur-[2px]" onClick={() => dismissible && onClose()} />
       <div
         ref={panelRef}
@@ -140,9 +144,18 @@ export function Modal({
             )}
           </div>
         )}
-        <div className={cn('flex-1 overflow-y-auto px-5 py-5 scrollbar-thin sm:px-6', bodyClassName)}>{children}</div>
+        {/* En móvil la hoja llega al borde inferior: se respeta la barra de inicio del iPhone. */}
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto overscroll-contain px-5 py-5 scrollbar-thin sm:px-6',
+            !footer && 'pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5',
+            bodyClassName
+          )}
+        >
+          {children}
+        </div>
         {footer && (
-          <div className="flex flex-col-reverse gap-2 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-100 bg-white px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:pb-4">
             {footer}
           </div>
         )}
